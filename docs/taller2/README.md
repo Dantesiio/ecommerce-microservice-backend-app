@@ -31,7 +31,7 @@
 
 ## Entregables Planeados
 1. Jenkinsfile `dev`: build y pruebas básicas para cada microservicio (`jenkins/Jenkinsfile.dev`).
-2. Jenkinsfile `stage`: build → despliegue en Kubernetes → smoke tests.
+2. Jenkinsfile `stage`: build → empaquetado Docker → despliegue en Kubernetes → smoke tests (`jenkins/Jenkinsfile.stage`).
 3. Jenkinsfile `master`: pipeline completo con pruebas funcionales, estrés y generación de Release Notes.
 4. Suites de pruebas automatizadas:
    - Unitarias adicionales (≥5).
@@ -55,6 +55,18 @@
   - `Build Services (Dev)`: compilación paralela de los seis microservicios con perfil `dev`.
   - `Unit Tests Summary`: ejecución de `mvn test` sobre los módulos seleccionados.
 - Publica reportes JUnit de `surefire` y archiva los artefactos `.jar` generados.
+
+### Jenkinsfile.stage
+- Ubicación: `jenkins/Jenkinsfile.stage`.
+- Pipeline sin agente global con etapas diferenciadas para construcción y despliegue.
+- Etapas principales:
+  - `Checkout`: clona la rama `dev` mediante el credential `git-credentials`.
+  - `Build & Unit Tests (Stage)`: ejecuta `./mvnw ... -Pdev clean verify` sobre los seis servicios núcleo.
+  - `Build Container Images`: construye imágenes Docker etiquetadas con el `GIT_COMMIT` para cada servicio.
+  - `Push Images`: inicia sesión en el registro (`docker-registry`) y publica las imágenes.
+  - `Deploy to Kubernetes (Stage)`: aplica manifests de `k8s/overlays/stage` utilizando el kubeconfig almacenado en `kubeconfig-stage`.
+  - `Smoke Tests`: verifica el rollout y ejecuta una comprobación de salud HTTP contra `proxy-client`.
+- Post-condición: siempre publica reportes JUnit y limpia el workspace.
 
 ### Pruebas Unitarias Añadidas
 - `user-service`: `UserServiceImplTest` cubre búsqueda exitosa y ausencia de usuarios.

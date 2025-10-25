@@ -1,0 +1,85 @@
+pipeline {
+    agent none
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+    environment {
+    REGISTRY_URL = "registry.example.com/ecommerce"
+        DOCKER_CREDS = credentials('docker-registry')
+        GIT_CREDS = credentials('git-credentials')
+        KUBECONFIG_STAGE = credentials('kubeconfig-stage')
+    }
+    stages {
+        stage('Checkout') {
+            agent { label 'docker' }
+            steps {
+                deleteDir()
+                checkout([
+                    $class: 'GitSCM',
+                    userRemoteConfigs: [[credentialsId: GIT_CREDS, url: env.GIT_URL ?: 'https://github.com/Dantesiio/ecommerce-microservice-backend-app.git']],
+                    branches: [[name: env.BRANCH_NAME ?: 'dev']],
+                    extensions: [[$class: 'CloneOption', depth: 0, shallow: false]]
+                ])
+            }
+        }
+        stage('Build & Unit Tests (Stage)') {
+            agent { label 'docker' }
+            steps {
+                sh './mvnw -pl proxy-client,user-service,product-service,order-service,payment-service,shipping-service -Pdev clean verify'
+            }
+        }
+        stage('Build Container Images') {
+            agent { label 'docker' }
+            steps {
+                script {
+                    def services = ['proxy-client', 'user-service', 'product-service', 'order-service', 'payment-service', 'shipping-service']
+                    services.each { svc ->
+                        sh """
+                            docker build \
+                                -f ${svc}/Dockerfile \
+                                -t ${REGISTRY_URL}/${svc}:${env.GIT_COMMIT} \
+                                ${svc}
+                        """
+                    }
+                }
+            }
+        }
+        stage('Push Images') {
+            agent { label 'docker' }
+            steps {
+                script {
+                    def registryHost = env.REGISTRY_URL.tokenize('/')[0]
+                    sh "echo '${DOCKER_CREDS_PSW}' | docker login ${registryHost} --username '${DOCKER_CREDS_USR}' --password-stdin"
+                    def services = ['proxy-client', 'user-service', 'product-service', 'order-service', 'payment-service', 'shipping-service']
+                    services.each { svc ->
+                        sh "docker push ${REGISTRY_URL}/${svc}:${env.GIT_COMMIT}"
+                    }
+                }
+            }
+        }
+        stage('Deploy to Kubernetes (Stage)') {
+            agent { label 'k8s' }
+            steps {
+                withEnv(["KUBECONFIG=${pwd()}/kubeconfig-stage.yaml"]) {
+                    writeFile file: 'kubeconfig-stage.yaml', text: KUBECONFIG_STAGE
+                    sh 'kubectl config use-context stage || true'
+                    sh 'kubectl apply -k k8s/overlays/stage'
+                }
+            }
+        }
+        stage('Smoke Tests') {
+            agent { label 'k8s' }
+            steps {
+                sh 'kubectl -n ecommerce-stage rollout status deployment/proxy-client --timeout=180s'
+                sh 'kubectl -n ecommerce-stage run smoke-tests --rm --restart=Never --image=curlimages/curl -- http://proxy-client.ecommerce-stage.svc.cluster.local:8900/app/actuator/health'
+            }
+        }
+    }
+    post {
+        always {
+            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+            cleanWs()
+        }
+    }
+}
