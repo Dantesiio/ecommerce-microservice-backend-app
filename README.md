@@ -86,6 +86,9 @@ The first thing to do is to open **git bash** command line, and then simply you 
 > git clone https://github.com/SelimHorri/ecommerce-microservice-backend-app.git
 ```
 
+### Workshop Artifacts
+- Taller 2 (Pruebas y Releases): consultar `docs/taller2/README.md` para el plan de trabajo y entregables CI/CD.
+
 ### Build & Test Them In Isolation
 
 To build and run the test cases for each service & shared modules in the project, we need to do the following:
