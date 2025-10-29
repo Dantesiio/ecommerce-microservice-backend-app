@@ -5,7 +5,7 @@ pipeline {
         timestamps()
     }
     environment {
-    REGISTRY_URL = "registry.example.com/ecommerce"
+        REGISTRY_URL = "registry.example.com/ecommerce"
         DOCKER_CREDS = credentials('docker-registry')
         GIT_CREDS = credentials('git-credentials')
         KUBECONFIG_STAGE = credentials('kubeconfig-stage')
@@ -26,7 +26,7 @@ pipeline {
         stage('Build & Unit Tests (Stage)') {
             agent { label 'docker' }
             steps {
-                sh './mvnw -pl proxy-client,user-service,product-service,order-service,payment-service,shipping-service -Pdev clean verify'
+                sh './mvnw -pl proxy-client,user-service,product-service,order-service,payment-service,shipping-service clean verify'
             }
         }
         stage('Build Container Images') {
@@ -78,8 +78,10 @@ pipeline {
     }
     post {
         always {
-            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-            cleanWs()
+            node('docker') {
+                junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                cleanWs()
+            }
         }
     }
 }
