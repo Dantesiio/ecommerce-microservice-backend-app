@@ -97,6 +97,12 @@ pipeline {
                                 elif grep -q 'server: https://127.0.0.1' "$KUBE_CONFIG_LOCAL"; then
                                     perl -0pi -e "s#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\1#" "$KUBE_CONFIG_LOCAL"
                                 fi
+                                echo '--- kubeconfig server entry ---'
+                                grep 'server:' "$KUBE_CONFIG_LOCAL" || true
+                                if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
+                                    echo "--- probing ${KUBE_STAGE_CLUSTER_ENDPOINT}/version ---"
+                                    curl -sk --connect-timeout 5 "$KUBE_STAGE_CLUSTER_ENDPOINT/version" || true
+                                fi
                             '''
                             sh "${kubectlPath} apply -k k8s/overlays/stage"
                         }
@@ -130,6 +136,12 @@ pipeline {
                                     perl -0pi -e "s#server: https://[^\\s]+#server: $KUBE_STAGE_CLUSTER_ENDPOINT#" "$KUBE_CONFIG_LOCAL"
                                 elif grep -q 'server: https://127.0.0.1' "$KUBE_CONFIG_LOCAL"; then
                                     perl -0pi -e "s#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\1#" "$KUBE_CONFIG_LOCAL"
+                                fi
+                                echo '--- kubeconfig server entry ---'
+                                grep 'server:' "$KUBE_CONFIG_LOCAL" || true
+                                if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
+                                    echo "--- probing ${KUBE_STAGE_CLUSTER_ENDPOINT}/version ---"
+                                    curl -sk --connect-timeout 5 "$KUBE_STAGE_CLUSTER_ENDPOINT/version" || true
                                 fi
                             '''
                             sh "${kubectlPath} -n ecommerce-stage rollout status deployment/proxy-client --timeout=180s"
