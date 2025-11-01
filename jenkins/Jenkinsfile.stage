@@ -85,11 +85,14 @@ pipeline {
                         def kubeconfigPath = "${workspaceDir}/kubeconfig-stage.yaml"
                         withEnv([
                             "KUBE_CONFIG_LOCAL=${kubeconfigPath}",
-                            "KUBECONFIG=${kubeconfigPath}"
+                            "KUBECONFIG=${kubeconfigPath}",
+                            "KUBE_STAGE_CLUSTER_ENDPOINT=${env.KUBE_STAGE_CLUSTER_ENDPOINT ?: ''}"
                         ]) {
                             sh '''
                                 cp "$KUBECONFIG_STAGE_FILE" "$KUBE_CONFIG_LOCAL"
-                                if grep -q 'server: https://127.0.0.1' "$KUBE_CONFIG_LOCAL"; then
+                                if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
+                                    perl -0pi -e "s#server: https://[^\\s]+#server: $KUBE_STAGE_CLUSTER_ENDPOINT#" "$KUBE_CONFIG_LOCAL"
+                                elif grep -q 'server: https://127.0.0.1' "$KUBE_CONFIG_LOCAL"; then
                                     perl -0pi -e "s#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\1#" "$KUBE_CONFIG_LOCAL"
                                 fi
                             '''
@@ -115,11 +118,14 @@ pipeline {
                         def kubeconfigPath = "${workspaceDir}/kubeconfig-stage.yaml"
                         withEnv([
                             "KUBE_CONFIG_LOCAL=${kubeconfigPath}",
-                            "KUBECONFIG=${kubeconfigPath}"
+                            "KUBECONFIG=${kubeconfigPath}",
+                            "KUBE_STAGE_CLUSTER_ENDPOINT=${env.KUBE_STAGE_CLUSTER_ENDPOINT ?: ''}"
                         ]) {
                             sh '''
                                 cp "$KUBECONFIG_STAGE_FILE" "$KUBE_CONFIG_LOCAL"
-                                if grep -q 'server: https://127.0.0.1' "$KUBE_CONFIG_LOCAL"; then
+                                if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
+                                    perl -0pi -e "s#server: https://[^\\s]+#server: $KUBE_STAGE_CLUSTER_ENDPOINT#" "$KUBE_CONFIG_LOCAL"
+                                elif grep -q 'server: https://127.0.0.1' "$KUBE_CONFIG_LOCAL"; then
                                     perl -0pi -e "s#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\1#" "$KUBE_CONFIG_LOCAL"
                                 fi
                             '''
