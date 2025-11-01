@@ -101,7 +101,7 @@ pipeline {
                                 grep 'server:' "$KUBE_CONFIG_LOCAL" || true
                                 if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
                                     echo "--- probing ${KUBE_STAGE_CLUSTER_ENDPOINT}/version ---"
-                                    curl -sk --connect-timeout 5 "$KUBE_STAGE_CLUSTER_ENDPOINT/version" || true
+                                    curl -k --connect-timeout 5 "$KUBE_STAGE_CLUSTER_ENDPOINT/version" || echo "curl exited $?"
                                 fi
                             '''
                             sh "${kubectlPath} apply -k k8s/overlays/stage"
@@ -141,7 +141,7 @@ pipeline {
                                 grep 'server:' "$KUBE_CONFIG_LOCAL" || true
                                 if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
                                     echo "--- probing ${KUBE_STAGE_CLUSTER_ENDPOINT}/version ---"
-                                    curl -sk --connect-timeout 5 "$KUBE_STAGE_CLUSTER_ENDPOINT/version" || true
+                                    curl -k --connect-timeout 5 "$KUBE_STAGE_CLUSTER_ENDPOINT/version" || echo "curl exited $?"
                                 fi
                             '''
                             sh "${kubectlPath} -n ecommerce-stage rollout status deployment/proxy-client --timeout=180s"
