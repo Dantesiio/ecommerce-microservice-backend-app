@@ -69,18 +69,38 @@ pipeline {
         stage('Deploy to Kubernetes (Stage)') {
             agent { label 'k8s' }
             steps {
-                withEnv(["KUBECONFIG=${pwd()}/kubeconfig-stage.yaml"]) {
-                    writeFile file: 'kubeconfig-stage.yaml', text: KUBECONFIG_STAGE
-                    sh 'kubectl config use-context stage || true'
-                    sh 'kubectl apply -k k8s/overlays/stage'
+                script {
+                    def workspaceDir = pwd()
+                    def kubectlPath = "${workspaceDir}/kubectl"
+                    sh """
+                        if [ ! -x \"${kubectlPath}\" ]; then
+                            curl -sSL -o \"${kubectlPath}\" https://dl.k8s.io/release/v1.28.4/bin/linux/amd64/kubectl
+                            chmod +x \"${kubectlPath}\"
+                        fi
+                    """
+                    withEnv(["KUBECONFIG=${workspaceDir}/kubeconfig-stage.yaml"]) {
+                        writeFile file: 'kubeconfig-stage.yaml', text: KUBECONFIG_STAGE
+                        sh "${kubectlPath} config use-context stage || true"
+                        sh "${kubectlPath} apply -k k8s/overlays/stage"
+                    }
                 }
             }
         }
         stage('Smoke Tests') {
             agent { label 'k8s' }
             steps {
-                sh 'kubectl -n ecommerce-stage rollout status deployment/proxy-client --timeout=180s'
-                sh 'kubectl -n ecommerce-stage run smoke-tests --rm --restart=Never --image=curlimages/curl -- http://proxy-client.ecommerce-stage.svc.cluster.local:8900/app/actuator/health'
+                script {
+                    def workspaceDir = pwd()
+                    def kubectlPath = "${workspaceDir}/kubectl"
+                    sh """
+                        if [ ! -x \"${kubectlPath}\" ]; then
+                            curl -sSL -o \"${kubectlPath}\" https://dl.k8s.io/release/v1.28.4/bin/linux/amd64/kubectl
+                            chmod +x \"${kubectlPath}\"
+                        fi
+                    """
+                    sh "${kubectlPath} -n ecommerce-stage rollout status deployment/proxy-client --timeout=180s"
+                    sh "${kubectlPath} -n ecommerce-stage run smoke-tests --rm --restart=Never --image=curlimages/curl -- http://proxy-client.ecommerce-stage.svc.cluster.local:8900/app/actuator/health"
+                }
             }
         }
     }
