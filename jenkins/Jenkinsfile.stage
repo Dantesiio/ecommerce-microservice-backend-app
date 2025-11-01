@@ -86,7 +86,7 @@ pipeline {
                         sh """
                             cp "${KUBECONFIG_STAGE_FILE}" "${kubeconfigPath}"
                             if grep -q 'server: https://127.0.0.1' "${kubeconfigPath}"; then
-                                perl -0pi -e 's/server: https:\/\/127\.0\.0\.1:(\d+)/server: https:\/\/host.docker.internal:\$1/' "${kubeconfigPath}"
+                                perl -0pi -e 's#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\$1#' "${kubeconfigPath}"
                             fi
                         """
                         withEnv(["KUBECONFIG=${kubeconfigPath}"]) {
@@ -113,7 +113,7 @@ pipeline {
                         sh """
                             cp "${KUBECONFIG_STAGE_FILE}" "${kubeconfigPath}"
                             if grep -q 'server: https://127.0.0.1' "${kubeconfigPath}"; then
-                                perl -0pi -e 's/server: https:\/\/127\.0\.0\.1:(\d+)/server: https:\/\/host.docker.internal:\$1/' "${kubeconfigPath}"
+                                perl -0pi -e 's#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\$1#' "${kubeconfigPath}"
                             fi
                         """
                         withEnv(["KUBECONFIG=${kubeconfigPath}"]) {
