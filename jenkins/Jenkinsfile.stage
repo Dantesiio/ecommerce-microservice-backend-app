@@ -5,7 +5,7 @@ pipeline {
         timestamps()
     }
     environment {
-        REGISTRY_URL = "registry.example.com/ecommerce"
+        REGISTRY_URL = "docker.io/dantesiio"
         DOCKER_CREDS = credentials('docker-registry')
         GIT_CREDS = credentials('git-credentials')
         KUBECONFIG_STAGE = credentials('kubeconfig-stage')
