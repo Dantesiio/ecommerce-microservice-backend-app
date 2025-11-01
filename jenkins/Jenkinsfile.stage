@@ -22,6 +22,7 @@ pipeline {
                     branches: [[name: env.BRANCH_NAME ?: 'dev']],
                     extensions: [[$class: 'CloneOption', depth: 0, shallow: false]]
                 ])
+                stash name: 'workspace-src', includes: '**', useDefaultExcludes: false
             }
         }
         stage('Build & Unit Tests (Stage)') {
@@ -73,6 +74,7 @@ pipeline {
             agent { label 'k8s' }
             steps {
                 script {
+                    unstash 'workspace-src'
                     def workspaceDir = pwd()
                     def kubectlPath = "${workspaceDir}/kubectl"
                     sh """
@@ -106,6 +108,7 @@ pipeline {
             agent { label 'k8s' }
             steps {
                 script {
+                    unstash 'workspace-src'
                     def workspaceDir = pwd()
                     def kubectlPath = "${workspaceDir}/kubectl"
                     sh """
