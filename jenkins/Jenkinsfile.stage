@@ -71,7 +71,7 @@ pipeline {
             }
         }
         stage('Deploy to Kubernetes (Stage)') {
-            agent { label 'k8s' }
+            agent { label 'built-in' }
             steps {
                 script {
                     unstash 'workspace-src'
@@ -111,7 +111,7 @@ pipeline {
             }
         }
         stage('Smoke Tests') {
-            agent { label 'k8s' }
+            agent { label 'built-in' }
             steps {
                 script {
                     unstash 'workspace-src'
