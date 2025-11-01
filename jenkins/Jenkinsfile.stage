@@ -83,13 +83,16 @@ pipeline {
                     """
                     withCredentials([file(credentialsId: env.KUBECONFIG_STAGE_ID, variable: 'KUBECONFIG_STAGE_FILE')]) {
                         def kubeconfigPath = "${workspaceDir}/kubeconfig-stage.yaml"
-                        sh """
-                            cp "${KUBECONFIG_STAGE_FILE}" "${kubeconfigPath}"
-                            if grep -q 'server: https://127.0.0.1' "${kubeconfigPath}"; then
-                                perl -0pi -e 's#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\$1#' "${kubeconfigPath}"
-                            fi
-                        """
-                        withEnv(["KUBECONFIG=${kubeconfigPath}"]) {
+                        withEnv([
+                            "KUBE_CONFIG_LOCAL=${kubeconfigPath}",
+                            "KUBECONFIG=${kubeconfigPath}"
+                        ]) {
+                            sh '''
+                                cp "$KUBECONFIG_STAGE_FILE" "$KUBE_CONFIG_LOCAL"
+                                if grep -q 'server: https://127.0.0.1' "$KUBE_CONFIG_LOCAL"; then
+                                    perl -0pi -e "s#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\1#" "$KUBE_CONFIG_LOCAL"
+                                fi
+                            '''
                             sh "${kubectlPath} apply -k k8s/overlays/stage"
                         }
                     }
@@ -110,13 +113,16 @@ pipeline {
                     """
                     withCredentials([file(credentialsId: env.KUBECONFIG_STAGE_ID, variable: 'KUBECONFIG_STAGE_FILE')]) {
                         def kubeconfigPath = "${workspaceDir}/kubeconfig-stage.yaml"
-                        sh """
-                            cp "${KUBECONFIG_STAGE_FILE}" "${kubeconfigPath}"
-                            if grep -q 'server: https://127.0.0.1' "${kubeconfigPath}"; then
-                                perl -0pi -e 's#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\$1#' "${kubeconfigPath}"
-                            fi
-                        """
-                        withEnv(["KUBECONFIG=${kubeconfigPath}"]) {
+                        withEnv([
+                            "KUBE_CONFIG_LOCAL=${kubeconfigPath}",
+                            "KUBECONFIG=${kubeconfigPath}"
+                        ]) {
+                            sh '''
+                                cp "$KUBECONFIG_STAGE_FILE" "$KUBE_CONFIG_LOCAL"
+                                if grep -q 'server: https://127.0.0.1' "$KUBE_CONFIG_LOCAL"; then
+                                    perl -0pi -e "s#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\1#" "$KUBE_CONFIG_LOCAL"
+                                fi
+                            '''
                             sh "${kubectlPath} -n ecommerce-stage rollout status deployment/proxy-client --timeout=180s"
                             sh "${kubectlPath} -n ecommerce-stage run smoke-tests --rm --restart=Never --image=curlimages/curl -- http://proxy-client.ecommerce-stage.svc.cluster.local:8900/app/actuator/health"
                         }
