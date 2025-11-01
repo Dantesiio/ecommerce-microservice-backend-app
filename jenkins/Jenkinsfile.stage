@@ -82,7 +82,8 @@ pipeline {
                         fi
                     """
                     withEnv(["KUBECONFIG=${workspaceDir}/kubeconfig-stage.yaml"]) {
-                        writeFile file: 'kubeconfig-stage.yaml', text: KUBECONFIG_STAGE
+                        def kubeConfigContent = KUBECONFIG_STAGE.replace('\\n', '\n')
+                        writeFile file: 'kubeconfig-stage.yaml', text: kubeConfigContent
                         sh "${kubectlPath} config use-context stage || true"
                         sh "${kubectlPath} apply -k k8s/overlays/stage"
                     }
