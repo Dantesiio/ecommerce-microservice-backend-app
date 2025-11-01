@@ -5,9 +5,8 @@ pipeline {
         timestamps()
     }
     environment {
-        REGISTRY_HOST = "docker.io"
-        REGISTRY_REPO = "dantesiio/ecommerce-backend"
-        REGISTRY_LOGIN_URL = "https://index.docker.io/v1/"
+    REGISTRY_HOST = "docker.io"
+    REGISTRY_REPO = "dantesiio/ecommerce-backend"
         DOCKER_CREDS_ID = "docker-registry"
         GIT_CREDS = credentials('git-credentials')
         KUBECONFIG_STAGE = credentials('kubeconfig-stage')
@@ -53,7 +52,12 @@ pipeline {
             steps {
                 script {
                     def services = ['proxy-client', 'user-service', 'product-service', 'order-service', 'payment-service', 'shipping-service']
-                    docker.withRegistry(env.REGISTRY_LOGIN_URL, env.DOCKER_CREDS_ID) {
+                    withCredentials([usernamePassword(credentialsId: env.DOCKER_CREDS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo "${DOCKER_PASS}" | docker login ${env.REGISTRY_HOST} \
+                                --username "${DOCKER_USER}" \
+                                --password-stdin
+                        """
                         services.each { svc ->
                             def imageRef = "${env.REGISTRY_HOST}/${env.REGISTRY_REPO}:${svc}-${env.GIT_COMMIT}"
                             sh "docker push ${imageRef}"
