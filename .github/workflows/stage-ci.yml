@@ -62,38 +62,20 @@ jobs:
             docker push "$REGISTRY_HOST/$REGISTRY_REPO:${svc}-${GITHUB_SHA}"
           done
 
-      - name: Install kubectl 1.28.4
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'v1.28.4'
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
 
-      - name: Write kubeconfig file
+      - name: Deploy proxy-client to Railway
         env:
-          KUBECONFIG_STAGE_B64: ${{ secrets.KUBECONFIG_STAGE_B64 }}
-          KUBE_STAGE_CLUSTER_ENDPOINT: ${{ secrets.KUBE_STAGE_CLUSTER_ENDPOINT }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          IMAGE_REF: ${{ env.REGISTRY_HOST }}/${{ env.REGISTRY_REPO }}:proxy-client-${{ github.sha }}
         run: |
-          if [ -z "$KUBECONFIG_STAGE_B64" ]; then
-            echo "KUBECONFIG_STAGE_B64 secret is required" >&2
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "El secreto RAILWAY_TOKEN es obligatorio" >&2
             exit 1
           fi
-          echo "$KUBECONFIG_STAGE_B64" | base64 --decode > kubeconfig-stage.yaml
-          if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
-            perl -0pi -e "s#server: https://[^\\s]+#server: $KUBE_STAGE_CLUSTER_ENDPOINT#" kubeconfig-stage.yaml
+          if [ -z "$IMAGE_REF" ]; then
+            echo "No se pudo construir la referencia de la imagen" >&2
+            exit 1
           fi
-          echo "--- kubeconfig server entry ---"
-          grep 'server:' kubeconfig-stage.yaml || true
-
-      - name: Deploy staged manifests
-        env:
-          KUBECONFIG: ${{ github.workspace }}/kubeconfig-stage.yaml
-        run: kubectl apply -k k8s/overlays/stage
-
-      - name: Wait for proxy rollout
-        env:
-          KUBECONFIG: ${{ github.workspace }}/kubeconfig-stage.yaml
-        run: kubectl -n ecommerce-stage rollout status deployment/proxy-client --timeout=180s
-
-      - name: Smoke test gateway
-        env:
-          KUBECONFIG: ${{ github.workspace }}/kubeconfig-stage.yaml
-        run: kubectl -n ecommerce-stage run smoke-tests --rm --restart=Never --image=curlimages/curl -- http://proxy-client.ecommerce-stage.svc.cluster.local:8900/app/actuator/health
+          railway up --service proxy-client --image "$IMAGE_REF" --detach
