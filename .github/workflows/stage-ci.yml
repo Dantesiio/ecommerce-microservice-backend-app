@@ -1,0 +1,99 @@
+name: Stage Delivery
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+concurrency:
+  group: stage-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY_HOST: docker.io
+  REGISTRY_REPO: dantesiio/ecommerce-backend
+  SERVICES: proxy-client user-service product-service order-service payment-service shipping-service
+
+jobs:
+  stage:
+    name: Build, Ship & Deploy
+    runs-on: self-hosted
+    environment: stage
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+
+      - name: Build selected modules and run tests
+        run: ./mvnw -pl proxy-client,user-service,product-service,order-service,payment-service,shipping-service clean verify
+
+      - name: Authenticate to Docker Hub
+        env:
+          DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASS: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          if [ -z "$DOCKER_USER" ] || [ -z "$DOCKER_PASS" ]; then
+            echo "Docker Hub credentials missing" >&2
+            exit 1
+          fi
+          echo "$DOCKER_PASS" | docker login "$REGISTRY_HOST" --username "$DOCKER_USER" --password-stdin
+
+      - name: Build service images
+        run: |
+          for svc in $SERVICES; do
+            echo "Building image for $svc"
+            docker build \
+              -f "$svc/Dockerfile" \
+              -t "$REGISTRY_HOST/$REGISTRY_REPO:${svc}-${GITHUB_SHA}" \
+              "$svc"
+          done
+
+      - name: Push service images
+        run: |
+          for svc in $SERVICES; do
+            echo "Pushing image for $svc"
+            docker push "$REGISTRY_HOST/$REGISTRY_REPO:${svc}-${GITHUB_SHA}"
+          done
+
+      - name: Install kubectl 1.28.4
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.4'
+
+      - name: Write kubeconfig file
+        env:
+          KUBECONFIG_STAGE_B64: ${{ secrets.KUBECONFIG_STAGE_B64 }}
+          KUBE_STAGE_CLUSTER_ENDPOINT: ${{ secrets.KUBE_STAGE_CLUSTER_ENDPOINT }}
+        run: |
+          if [ -z "$KUBECONFIG_STAGE_B64" ]; then
+            echo "KUBECONFIG_STAGE_B64 secret is required" >&2
+            exit 1
+          fi
+          echo "$KUBECONFIG_STAGE_B64" | base64 --decode > kubeconfig-stage.yaml
+          if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
+            perl -0pi -e "s#server: https://[^\\s]+#server: $KUBE_STAGE_CLUSTER_ENDPOINT#" kubeconfig-stage.yaml
+          fi
+          echo "--- kubeconfig server entry ---"
+          grep 'server:' kubeconfig-stage.yaml || true
+
+      - name: Deploy staged manifests
+        env:
+          KUBECONFIG: ${{ github.workspace }}/kubeconfig-stage.yaml
+        run: kubectl apply -k k8s/overlays/stage
+
+      - name: Wait for proxy rollout
+        env:
+          KUBECONFIG: ${{ github.workspace }}/kubeconfig-stage.yaml
+        run: kubectl -n ecommerce-stage rollout status deployment/proxy-client --timeout=180s
+
+      - name: Smoke test gateway
+        env:
+          KUBECONFIG: ${{ github.workspace }}/kubeconfig-stage.yaml
+        run: kubectl -n ecommerce-stage run smoke-tests --rm --restart=Never --image=curlimages/curl -- http://proxy-client.ecommerce-stage.svc.cluster.local:8900/app/actuator/health
