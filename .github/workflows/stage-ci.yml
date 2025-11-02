@@ -78,4 +78,4 @@ jobs:
             echo "No se pudo construir la referencia de la imagen" >&2
             exit 1
           fi
-          railway up --service proxy-client --image "$IMAGE_REF" --detach
+            railway deploy --service proxy-client --image "$IMAGE_REF" --detach
