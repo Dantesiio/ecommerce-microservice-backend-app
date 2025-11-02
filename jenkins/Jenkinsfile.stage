@@ -22,7 +22,7 @@ pipeline {
                     branches: [[name: env.BRANCH_NAME ?: 'dev']],
                     extensions: [[$class: 'CloneOption', depth: 0, shallow: false]]
                 ])
-                sh 'tar -czf workspace.tgz .'
+                sh 'tar --warning=no-file-changed --exclude=.git -czf workspace.tgz .'
                 stash name: 'workspace-src', includes: 'workspace.tgz'
             }
         }
@@ -78,6 +78,7 @@ pipeline {
                     deleteDir()
                     unstash 'workspace-src'
                     sh 'tar -xzf workspace.tgz'
+                    sh 'rm -f workspace.tgz'
                     def workspaceDir = pwd()
                     def kubectlPath = "${workspaceDir}/kubectl"
                     sh """
@@ -120,6 +121,7 @@ pipeline {
                     deleteDir()
                     unstash 'workspace-src'
                     sh 'tar -xzf workspace.tgz'
+                    sh 'rm -f workspace.tgz'
                     def workspaceDir = pwd()
                     def kubectlPath = "${workspaceDir}/kubectl"
                     sh """
