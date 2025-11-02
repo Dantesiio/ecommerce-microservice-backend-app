@@ -22,7 +22,8 @@ pipeline {
                     branches: [[name: env.BRANCH_NAME ?: 'dev']],
                     extensions: [[$class: 'CloneOption', depth: 0, shallow: false]]
                 ])
-                stash name: 'workspace-src', includes: '**', useDefaultExcludes: false
+                sh 'tar -czf workspace.tgz .'
+                stash name: 'workspace-src', includes: 'workspace.tgz'
             }
         }
         stage('Build & Unit Tests (Stage)') {
@@ -74,7 +75,9 @@ pipeline {
             agent { label 'built-in' }
             steps {
                 script {
+                    deleteDir()
                     unstash 'workspace-src'
+                    sh 'tar -xzf workspace.tgz'
                     def workspaceDir = pwd()
                     def kubectlPath = "${workspaceDir}/kubectl"
                     sh """
@@ -114,7 +117,9 @@ pipeline {
             agent { label 'built-in' }
             steps {
                 script {
+                    deleteDir()
                     unstash 'workspace-src'
+                    sh 'tar -xzf workspace.tgz'
                     def workspaceDir = pwd()
                     def kubectlPath = "${workspaceDir}/kubectl"
                     sh """
