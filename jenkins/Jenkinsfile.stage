@@ -8,7 +8,7 @@ pipeline {
     REGISTRY_HOST = "docker.io"
     REGISTRY_REPO = "dantesiio/ecommerce-backend"
         DOCKER_CREDS_ID = "docker-registry"
-        GIT_CREDS = credentials('git-credentials')
+        GIT_CREDENTIALS_ID = "git-credentials"
         KUBECONFIG_STAGE_ID = "kubeconfig-stage"
     }
     stages {
@@ -18,12 +18,11 @@ pipeline {
                 deleteDir()
                 checkout([
                     $class: 'GitSCM',
-                    userRemoteConfigs: [[credentialsId: GIT_CREDS, url: env.GIT_URL ?: 'https://github.com/Dantesiio/ecommerce-microservice-backend-app.git']],
+                    userRemoteConfigs: [[credentialsId: env.GIT_CREDENTIALS_ID, url: env.GIT_URL ?: 'https://github.com/Dantesiio/ecommerce-microservice-backend-app.git']],
                     branches: [[name: env.BRANCH_NAME ?: 'dev']],
                     extensions: [[$class: 'CloneOption', depth: 0, shallow: false]]
                 ])
-                sh 'tar --warning=no-file-changed --exclude=.git -czf workspace.tgz .'
-                stash name: 'workspace-src', includes: 'workspace.tgz'
+                sh 'tar --warning=no-file-changed --exclude=.git --exclude=workspace.tgz -czf workspace.tgz .'
                 stash name: 'workspace-src', includes: 'workspace.tgz'
             }
         }
