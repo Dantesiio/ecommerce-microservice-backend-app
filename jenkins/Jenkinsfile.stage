@@ -74,6 +74,23 @@ pipeline {
             agent { label 'built-in' }
             steps {
                 script {
+                    sh '''
+                        if command -v docker >/dev/null 2>&1; then
+                            JENKINS_ID=$(docker ps --filter "name=jenkins" --format "{{.ID}}" | head -n 1)
+                            if [ -n "$JENKINS_ID" ] && docker network inspect minikube >/dev/null 2>&1; then
+                                if ! docker network inspect minikube | grep -q "$JENKINS_ID"; then
+                                    echo "Attaching Jenkins container to minikube network"
+                                    docker network connect minikube "$JENKINS_ID" || echo "Unable to attach Jenkins container to minikube network"
+                                else
+                                    echo "Jenkins container already attached to minikube network"
+                                fi
+                            else
+                                echo "Minikube network or Jenkins container ID not available; skipping network attachment"
+                            fi
+                        else
+                            echo "Docker CLI not available; skipping network attachment"
+                        fi
+                    '''
                     deleteDir()
                     unstash 'workspace-src'
                     def workspaceDir = pwd()
@@ -115,6 +132,23 @@ pipeline {
             agent { label 'built-in' }
             steps {
                 script {
+                    sh '''
+                        if command -v docker >/dev/null 2>&1; then
+                            JENKINS_ID=$(docker ps --filter "name=jenkins" --format "{{.ID}}" | head -n 1)
+                            if [ -n "$JENKINS_ID" ] && docker network inspect minikube >/dev/null 2>&1; then
+                                if ! docker network inspect minikube | grep -q "$JENKINS_ID"; then
+                                    echo "Attaching Jenkins container to minikube network"
+                                    docker network connect minikube "$JENKINS_ID" || echo "Unable to attach Jenkins container to minikube network"
+                                else
+                                    echo "Jenkins container already attached to minikube network"
+                                fi
+                            else
+                                echo "Minikube network or Jenkins container ID not available; skipping network attachment"
+                            fi
+                        else
+                            echo "Docker CLI not available; skipping network attachment"
+                        fi
+                    '''
                     deleteDir()
                     unstash 'workspace-src'
                     def workspaceDir = pwd()
