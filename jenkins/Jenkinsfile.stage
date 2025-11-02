@@ -24,6 +24,7 @@ pipeline {
                 ])
                 sh 'tar --warning=no-file-changed --exclude=.git -czf workspace.tgz .'
                 stash name: 'workspace-src', includes: 'workspace.tgz'
+                stash name: 'workspace-src', includes: 'workspace.tgz'
             }
         }
         stage('Build & Unit Tests (Stage)') {
