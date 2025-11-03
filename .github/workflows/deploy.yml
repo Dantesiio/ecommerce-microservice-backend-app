@@ -1,0 +1,24 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches:
+      - main  # o la rama que uses para despliegue
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Railway
+        uses: railwayapp/railway-action@v3
+        with:
+          railwayToken: ${{ secrets.RAILWAY_TOKEN }}
+          projectId: ${{ secrets.RAILWAY_PROJECT_ID }}
+          environment: ${{ secrets.RAILWAY_ENVIRONMENT_NAME }}
+
+      - name: Deploy service
+        run: railway up --service ecommerce-microservice-backend-app
