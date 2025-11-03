@@ -4,17 +4,15 @@
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copia solo el pom del microservicio
-COPY proxy-client/pom.xml .
+# Copia el pom del root y el del módulo
+COPY pom.xml .
+COPY proxy-client/pom.xml proxy-client/pom.xml
 
-# Descarga dependencias de este microservicio
-RUN mvn dependency:go-offline -B
+# Copia los archivos necesarios para resolver dependencias
+COPY proxy-client/src proxy-client/src
 
-# Copia el código fuente del microservicio
-COPY proxy-client/src ./src
-
-# Construye el JAR solo de este microservicio
-RUN mvn -DskipTests clean package
+# Descarga dependencias y construye el JAR del submódulo
+RUN mvn -f proxy-client/pom.xml -DskipTests clean package
 
 # =========================
 # Stage 2: Runtime
@@ -22,13 +20,10 @@ RUN mvn -DskipTests clean package
 FROM eclipse-temurin:17-jdk
 WORKDIR /home/app
 
-# Variable de entorno del perfil
 ENV SPRING_PROFILES_ACTIVE=dev
 
-# Copia el jar construido desde la etapa anterior
-COPY --from=build /app/target/*.jar app.jar
+# Copia el jar compilado desde la etapa anterior
+COPY --from=build /app/proxy-client/target/*.jar app.jar
 
-# Expone el puerto (Railway usa $PORT internamente)
 EXPOSE 8900
-
 ENTRYPOINT ["java", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE}", "-Dserver.port=${PORT}", "-jar", "app.jar"]
