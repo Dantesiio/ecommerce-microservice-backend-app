@@ -1,24 +1,32 @@
-name: Deploy to Railway
+name: Build and Deploy to Railway
 
 on:
   push:
     branches:
-      - main  # o la rama que uses para despliegue
+      - main  # o 'stage' si tienes rama de staging
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 🧩 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Railway
-        uses: railwayapp/railway-action@v3
+      - name: ⚙️ Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          railwayToken: ${{ secrets.RAILWAY_TOKEN }}
-          projectId: ${{ secrets.RAILWAY_PROJECT_ID }}
-          environment: ${{ secrets.RAILWAY_ENVIRONMENT_NAME }}
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Deploy service
-        run: railway up --service ecommerce-microservice-backend-app
+      - name: 🐳 Build Docker image
+        run: docker build -f proxy-client/Dockerfile . -t proxy-client:latest
+
+      - name: 🧰 Install Railway CLI
+        run: npm i -g railway
+
+      - name: 🔐 Login to Railway
+        run: railway login --token ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: 🚀 Deploy to Railway
+        run: railway up --service proxy-client --ci
