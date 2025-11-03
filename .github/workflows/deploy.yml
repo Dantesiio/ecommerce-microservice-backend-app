@@ -21,7 +21,7 @@ jobs:
           cache: 'maven'
 
       - name: 🐳 Build Docker image
-        run: docker build -f proxy-client/Dockerfile . -t proxy-client:latest
+        run: docker build -f proxy-client/Dockerfile ./ -t proxy-client:latest --build-context proxy-client=proxy-client
 
       - name: 🧰 Install Railway CLI
         run: npm i -g railway

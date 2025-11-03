@@ -2,22 +2,20 @@
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copiamos el parent POM y el wrapper de Maven
-COPY pom.xml mvnw mvnw.cmd ./
-COPY .mvn .mvn
+# Copia el POM raíz (importante para parent)
+COPY ../pom.xml .
+COPY ../mvnw ../mvnw.cmd ./
+COPY ../.mvn .mvn
 
-# Copiamos solo el módulo proxy-client (código fuente + su pom)
-COPY proxy-client ./proxy-client
+# Copia solo este módulo
+COPY . .
 
-# Compilamos el módulo proxy-client
-RUN mvn -f proxy-client/pom.xml -DskipTests clean package
+# Compila
+RUN mvn -DskipTests clean package
 
-# ===== Etapa 2: Imagen final =====
+# ===== Etapa 2 =====
 FROM eclipse-temurin:17-jdk
 WORKDIR /home/app
-
-# Copiamos el JAR generado desde la etapa de build
-COPY --from=build /app/proxy-client/target/*.jar app.jar
-
+COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8900
 ENTRYPOINT ["java", "-jar", "app.jar"]
