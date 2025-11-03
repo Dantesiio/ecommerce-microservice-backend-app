@@ -32,4 +32,5 @@ jobs:
         run: railway login --token ${{ secrets.RAILWAY_TOKEN }}
 
       - name: 🚀 Deploy to Railway
+        working-directory: ./proxy-client
         run: railway up --service proxy-client --ci
