@@ -22,9 +22,16 @@ jobs:
           java-version: '17'
           cache: 'maven'
 
-      - name: Build proxy-client Docker image
-        run: docker build -f proxy-client/Dockerfile . -t proxy-client:latest
+      # 1) Compilamos el módulo con Maven en el host (resuelve el parent sin dramas)
+      - name: 🧪 Build proxy-client with Maven
+        run: mvn -DskipTests -pl proxy-client -am clean package
 
+      # 2) Construimos la imagen Docker usando SOLO el subdirectorio proxy-client (donde ya está el jar)
+      - name: 🏗️ Build proxy-client Docker image
+        working-directory: ./proxy-client
+        run: docker build -t proxy-client:latest .
+
+      # 3) Railway CLI + Deploy
       - name: 🧰 Install Railway CLI
         run: npm i -g railway
 
