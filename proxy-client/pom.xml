@@ -3,26 +3,22 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	
-	<parent>
-    	<groupId>com.selimhorri</groupId>
-    	<artifactId>ecommerce-microservice-backend</artifactId>
-    	<version>0.1.0</version>
-    	<relativePath>../pom.xml</relativePath>
-	</parent>
 
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.selimhorri</groupId>
 	<artifactId>proxy-client</artifactId>
+	<version>0.1.0</version>
 	<name>proxy-client</name>
 	<description>Spring Boot Microservice!</description>
 	<packaging>jar</packaging>
-	
+
 	<properties>
 		<java.version>11</java.version>
 		<spring-cloud.version>2020.0.4</spring-cloud.version>
 		<testcontainers.version>1.16.2</testcontainers.version>
 	</properties>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -81,7 +77,7 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -100,7 +96,7 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-	
+
 	<build>
 		<plugins>
 			<plugin>
@@ -118,8 +114,5 @@
 		</plugins>
 		<finalName>${project.artifactId}-v${project.version}</finalName>
 	</build>
-	
+
 </project>
-
-
-
