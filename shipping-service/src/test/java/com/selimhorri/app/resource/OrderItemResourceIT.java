@@ -25,7 +25,14 @@ import com.selimhorri.app.repository.OrderItemRepository;
     properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.cloud.discovery.client.simple.instances.ORDER-SERVICE[0].uri=http://localhost:${wiremock.server.port}",
-        "spring.cloud.discovery.client.simple.instances.PRODUCT-SERVICE[0].uri=http://localhost:${wiremock.server.port}"
+        "spring.cloud.discovery.client.simple.instances.PRODUCT-SERVICE[0].uri=http://localhost:${wiremock.server.port}",
+        "wiremock.server.https-port=-1",
+        "eureka.client.enabled=false",
+        "eureka.client.register-with-eureka=false",
+        "eureka.client.fetch-registry=false",
+        "spring.zipkin.enabled=false",
+        "spring.cloud.config.enabled=false",
+        "SPRING_CONFIG_IMPORT=optional:file:./"
     })
 @AutoConfigureMockMvc
 @AutoConfigureWireMock(port = 0)
@@ -67,7 +74,8 @@ class OrderItemResourceIT {
                     "\"orderId\":900," +
                     "\"orderDesc\":\"Shipping order\"}")));
 
-        mockMvc.perform(get("/shipping-service/api/shippings"))
+    mockMvc.perform(get("/shipping-service/api/shippings")
+        .contextPath("/shipping-service"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.collection[0].product.productId").value(501))
             .andExpect(jsonPath("$.collection[0].product.productTitle").value("Headphones"))

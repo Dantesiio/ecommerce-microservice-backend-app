@@ -25,7 +25,14 @@ import com.selimhorri.app.repository.PaymentRepository;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.cloud.discovery.client.simple.instances.ORDER-SERVICE[0].uri=http://localhost:${wiremock.server.port}"
+        "spring.cloud.discovery.client.simple.instances.ORDER-SERVICE[0].uri=http://localhost:${wiremock.server.port}",
+        "wiremock.server.https-port=-1",
+        "eureka.client.enabled=false",
+        "eureka.client.register-with-eureka=false",
+        "eureka.client.fetch-registry=false",
+        "spring.zipkin.enabled=false",
+        "spring.cloud.config.enabled=false",
+        "SPRING_CONFIG_IMPORT=optional:file:./"
     })
 @AutoConfigureMockMvc
 @AutoConfigureWireMock(port = 0)
@@ -60,7 +67,8 @@ class PaymentResourceIT {
                     "\"orderId\":123," +
                     "\"orderDesc\":\"Mocked order\"}")));
 
-        mockMvc.perform(get("/payment-service/api/payments/{id}", payment.getPaymentId()))
+    mockMvc.perform(get("/payment-service/api/payments/{id}", payment.getPaymentId())
+        .contextPath("/payment-service"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.paymentId").value(payment.getPaymentId()))
             .andExpect(jsonPath("$.order.orderId").value(123))

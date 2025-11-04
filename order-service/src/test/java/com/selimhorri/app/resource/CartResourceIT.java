@@ -24,7 +24,14 @@ import com.selimhorri.app.repository.CartRepository;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.cloud.discovery.client.simple.instances.USER-SERVICE[0].uri=http://localhost:${wiremock.server.port}"
+        "spring.cloud.discovery.client.simple.instances.USER-SERVICE[0].uri=http://localhost:${wiremock.server.port}",
+        "wiremock.server.https-port=-1",
+        "eureka.client.enabled=false",
+        "eureka.client.register-with-eureka=false",
+        "eureka.client.fetch-registry=false",
+        "spring.zipkin.enabled=false",
+        "spring.cloud.config.enabled=false",
+        "SPRING_CONFIG_IMPORT=optional:file:./"
     })
 @AutoConfigureMockMvc
 @AutoConfigureWireMock(port = 0)
@@ -57,7 +64,8 @@ class CartResourceIT {
                     "\"lastName\":\"Smith\"," +
                     "\"email\":\"alice@example.com\"}")));
 
-        mockMvc.perform(get("/order-service/api/carts/{id}", cart.getCartId()))
+    mockMvc.perform(get("/order-service/api/carts/{id}", cart.getCartId())
+        .contextPath("/order-service"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.cartId").value(cart.getCartId()))
             .andExpect(jsonPath("$.user.userId").value(55))
@@ -76,7 +84,8 @@ class CartResourceIT {
                     "\"userId\":77," +
                     "\"firstName\":\"Bob\"}")));
 
-        mockMvc.perform(get("/order-service/api/carts"))
+    mockMvc.perform(get("/order-service/api/carts")
+        .contextPath("/order-service"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.collection[0].user.userId").value(77))
             .andExpect(jsonPath("$.collection[0].user.firstName").value("Bob"));

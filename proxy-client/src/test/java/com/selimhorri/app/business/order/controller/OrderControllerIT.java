@@ -23,7 +23,13 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.cloud.discovery.client.simple.instances.ORDER-SERVICE[0].uri=http://localhost:${wiremock.server.port}"
+        "spring.cloud.discovery.client.simple.instances.ORDER-SERVICE[0].uri=http://localhost:${wiremock.server.port}",
+        "wiremock.server.https-port=-1",
+        "eureka.client.enabled=false",
+        "eureka.client.register-with-eureka=false",
+        "eureka.client.fetch-registry=false",
+        "spring.cloud.config.enabled=false",
+        "SPRING_CONFIG_IMPORT=optional:file:./"
     })
 @AutoConfigureMockMvc(addFilters = false)
 @AutoConfigureWireMock(port = 0)
@@ -50,7 +56,7 @@ class OrderControllerIT {
                     "\"orderDesc\":\"Gateway order\"}" +
                     "]}")));
 
-        mockMvc.perform(get("/app/api/orders"))
+    mockMvc.perform(get("/app/api/orders").contextPath("/app"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.collection[0].orderId").value(41))
             .andExpect(jsonPath("$.collection[0].orderDesc").value("Gateway order"));
@@ -66,7 +72,7 @@ class OrderControllerIT {
                     "\"orderId\":42," +
                     "\"orderDesc\":\"Created via proxy\"}")));
 
-        mockMvc.perform(post("/app/api/orders")
+        mockMvc.perform(post("/app/api/orders").contextPath("/app")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{" +
                     "\"orderDesc\":\"Created via proxy\"," +
