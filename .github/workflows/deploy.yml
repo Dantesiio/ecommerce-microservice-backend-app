@@ -11,9 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧾 Checkout repo
+      - name: Checkout full repository
         uses: actions/checkout@v4
-
+        with:
+            fetch-depth: 0
+            persist-credentials: false
+            submodules: recursive
       - name: ⚙️ Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -24,9 +27,9 @@ jobs:
       - name: 🧱 Build Maven project
         run: mvn -DskipTests -pl proxy-client -am clean package
 
-      - name: 🐳 Build proxy-client Docker image  
-        working-directory: proxy-client
-        run: docker build -t proxy-client:latest -f Dockerfile .
+      - name: Build proxy-client Docker image
+        working-directory: .
+        run: docker build -f proxy-client/Dockerfile -t proxy-client:latest .
 
       - name: 🧰 Install Railway CLI
         run: npm i -g railway

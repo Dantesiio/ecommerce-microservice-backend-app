@@ -7,11 +7,10 @@ COPY pom.xml .
 COPY .mvn .mvn
 COPY mvnw mvnw.cmd ./
 
+
 COPY proxy-client ./proxy-client
 
-
-RUN ./mvnw -q -DskipTests -pl proxy-client -am clean package
-
+RUN ./mvnw -q -f proxy-client/pom.xml -DskipTests -Dmaven.test.skip=true clean package
 
 FROM eclipse-temurin:17-jdk
 WORKDIR /home/app
