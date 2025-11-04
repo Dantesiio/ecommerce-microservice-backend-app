@@ -6,11 +6,19 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.5.6</version>
+		<relativePath/> 
+	</parent>
+
 	<groupId>com.selimhorri</groupId>
 	<artifactId>proxy-client</artifactId>
 	<version>0.1.0</version>
 	<name>proxy-client</name>
-	<description>Spring Boot Microservice!</description>
+	<description>Standalone build for proxy-client</description>
 	<packaging>jar</packaging>
 
 	<properties>
@@ -61,6 +69,7 @@
 		<dependency>
 			<groupId>javax.xml.bind</groupId>
 			<artifactId>jaxb-api</artifactId>
+			<version>2.3.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.thymeleaf.extras</groupId>
@@ -102,14 +111,6 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
-				</configuration>
 			</plugin>
 		</plugins>
 		<finalName>${project.artifactId}-v${project.version}</finalName>
