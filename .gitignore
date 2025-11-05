@@ -34,3 +34,14 @@ build/
 
 ### Python virtual environments ###
 .venv/
+
+### Local artifacts and archives ###
+artifacts/
+*.tar
+
+### Python bytecode ###
+**/__pycache__/
+*.pyc
+
+### macOS filesystem ###
+.DS_Store
