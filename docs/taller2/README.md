@@ -6,16 +6,18 @@
 - Desplegar a Kubernetes en tres ambientes: `dev`, `stage` y `master`, con publicación automática de Release Notes.
 
 ## Preparación de Herramientas
-### Jenkins
-- Versión mínima recomendada: 2.452 LTS (incluye JDK 11).
-- Plugins requeridos: `Docker Pipeline`, `Kubernetes`, `Git`, `JUnit`, `Jacoco`, `HTML Publisher`, `Pipeline Utility Steps`, `AnsiColor`.
-- Configurar agentes:
-  - `docker` label con acceso al daemon Docker.
-  - `k8s` label para ejecutar `kubectl`/`helm`.
-- Credenciales:
-  - `git-credentials` (con acceso lectura/escritura al repo).
-  - `docker-registry` (usuario/token al registry elegido).
-  - `kubeconfig-stage` y `kubeconfig-master` (secret text con el contenido del kubeconfig correspondiente).
+### GitHub Actions
+- Repositorio configurado con workflows en `.github/workflows` segmentados por servicio y ambiente.
+- Runners utilizados:
+  - `ubuntu-latest` hospedado por GitHub para compilaciones en ramas `dev`/`develop`.
+  - `self-hosted` con Docker y acceso al registro para el flujo `stage-ci.yml`.
+- Secretos requeridos:
+  - `DOCKER_USERNAME` y `DOCKER_PASSWORD` para autenticación en Docker Hub.
+  - `REGISTRY_HOST` y `REGISTRY_REPO` (variables de entorno compartidas en `stage-ci.yml`).
+  - `STAGE_KUBE_CONFIG` (pendiente de creación) para configurar despliegues a Kubernetes.
+- Estrategia de ramas:
+  - `dev` activa ejecuciones de integración continua y despliegues a `stage`.
+  - `master` consolidará despliegues a producción cuando el pipeline final esté completado.
 
 ### Docker
 - Docker Engine ≥ 25.0 en el nodo Jenkins `docker`.
@@ -30,9 +32,9 @@
 - Herramientas en agente `k8s`: `kubectl`, `helm`, `kustomize`.
 
 ## Entregables Planeados
-1. Jenkinsfile `dev`: build y pruebas básicas para cada microservicio (`jenkins/Jenkinsfile.dev`).
-2. Jenkinsfile `stage`: build → empaquetado Docker → despliegue en Kubernetes → smoke tests (`jenkins/Jenkinsfile.stage`).
-3. Jenkinsfile `master`: pipeline completo con pruebas funcionales, estrés y generación de Release Notes.
+1. Workflows `*-pipeline-dev-*.yml`: automatizan build y pruebas unitarias por microservicio en ramas `dev`/`develop`.
+2. Workflow `stage-ci.yml`: build → empaquetado Docker → push a Docker Hub → despliegue en Kubernetes `stage` → smoke tests.
+3. Workflow de release (pendiente): orquestará pruebas funcionales, estrés y publicación de Release Notes antes de promover a producción.
 4. Suites de pruebas automatizadas:
    - Unitarias adicionales (≥5).
    - Integración entre servicios (≥5).
@@ -44,29 +46,29 @@
 ## Proceso de Trabajo
 - Cada entregable tendrá su commit dedicado en la rama `dev`.
 - Se actualizará este documento con enlaces a configuraciones, scripts y reportes consolidados.
-- El merge a `master` se realizará solo cuando todos los pipelines estén verdes en Jenkins.
+- El merge a `master` se realizará solo cuando todos los workflows de GitHub Actions estén verdes.
 
-### Jenkinsfile.dev
-- Ubicación: `jenkins/Jenkinsfile.dev`.
-- Pipeline declarativo que ejecuta en agente con label `docker`.
+### Workflows Dev
+- Ubicación: `.github/workflows/*-pipeline-dev-*.yml` (un archivo por microservicio).
+- Ejecutan en `ubuntu-latest` con Java 11 y Maven Wrapper.
 - Etapas principales:
-  - `Checkout`: checkout del repositorio y submódulos.
-  - `Resolve Maven Wrapper`: verificación de wrapper y versión de Maven.
-  - `Build Services (Dev)`: compilación paralela de los seis microservicios con perfil `dev`.
-  - `Unit Tests Summary`: ejecución de `mvn test` sobre los módulos seleccionados.
-- Publica reportes JUnit de `surefire` y archiva los artefactos `.jar` generados.
+  - `Checkout`: clona el repositorio.
+  - `Build with Maven`: compila y ejecuta pruebas (`mvn -B package --file pom.xml`).
+  - `Docker Login`: autentica en Docker Hub usando `DOCKER_USERNAME`/`DOCKER_PASSWORD`.
+  - `Build & Push`: construye la imagen Docker del servicio y la etiqueta con `${{ secrets.PROJECT_VERSION }}dev`.
+- Próxima iteración: publicar reportes JUnit y consolidar nomenclatura de imágenes.
 
-### Jenkinsfile.stage
-- Ubicación: `jenkins/Jenkinsfile.stage`.
-- Pipeline sin agente global con etapas diferenciadas para construcción y despliegue.
+### Workflow Stage
+- Ubicación: `.github/workflows/stage-ci.yml`.
+- Corre en runner `self-hosted` con Docker, acceso al registro y credenciales Kubernetes.
 - Etapas principales:
-  - `Checkout`: clona la rama `dev` mediante el credential `git-credentials`.
-  - `Build & Unit Tests (Stage)`: ejecuta `./mvnw ... -Pdev clean verify` sobre los seis servicios núcleo.
-  - `Build Container Images`: construye imágenes Docker etiquetadas con el `GIT_COMMIT` para cada servicio.
-  - `Push Images`: inicia sesión en el registro (`docker-registry`) y publica las imágenes.
-  - `Deploy to Kubernetes (Stage)`: aplica manifests de `k8s/overlays/stage` utilizando el kubeconfig almacenado en `kubeconfig-stage`.
-  - `Smoke Tests`: verifica el rollout y ejecuta una comprobación de salud HTTP contra `proxy-client`.
-- Post-condición: siempre publica reportes JUnit y limpia el workspace.
+  - `Checkout`: clona la rama `dev`.
+  - `Build & Unit Tests`: ejecuta `./mvnw ... clean verify` para los seis servicios núcleo.
+  - `Authenticate`: inicia sesión en Docker Hub con los secretos `DOCKER_USERNAME`/`DOCKER_PASSWORD`.
+  - `Build service images`: construye imágenes etiquetadas como `$REGISTRY_HOST/$REGISTRY_REPO:<service>-<GITHUB_SHA>`.
+  - `Push service images`: publica cada imagen en el registro.
+  - En construcción: despliegue automático a Kubernetes `stage` mediante kubeconfig almacenado como secreto.
+- Post-condición esperada: smoke tests sobre `proxy-client` una vez integrado el despliegue.
 
 ### Pruebas Unitarias Añadidas
 - `user-service`: `UserServiceImplTest` cubre búsqueda exitosa y ausencia de usuarios.

@@ -1,4 +1,0 @@
-[build]
-builder = "Dockerfile"
-dockerfilePath = "proxy-client/Dockerfile"
-buildContext = "."

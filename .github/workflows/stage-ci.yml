@@ -61,21 +61,3 @@ jobs:
             echo "Pushing image for $svc"
             docker push "$REGISTRY_HOST/$REGISTRY_REPO:${svc}-${GITHUB_SHA}"
           done
-
-      - name: Install Railway CLI
-        run: npm i -g @railway/cli
-
-      - name: Deploy proxy-client to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          IMAGE_REF: ${{ env.REGISTRY_HOST }}/${{ env.REGISTRY_REPO }}:proxy-client-${{ github.sha }}
-        run: |
-          if [ -z "$RAILWAY_TOKEN" ]; then
-            echo "El secreto RAILWAY_TOKEN es obligatorio" >&2
-            exit 1
-          fi
-          if [ -z "$IMAGE_REF" ]; then
-            echo "No se pudo construir la referencia de la imagen" >&2
-            exit 1
-          fi
-            railway up --service proxy-client --detach

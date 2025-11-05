@@ -1,0 +1,60 @@
+ESTADO DEL PROYECTO - TALLER 2
+================================
+
+Estudiante: dantesiio
+Fecha: 4 de noviembre de 2025
+
+✅ COMPLETADO (Estimado 80%):
+
+1. Punto 1 - Configuración CI/CD (10%)
+   ✅ GitHub Actions configurado
+   ✅ Workflows funcionando
+   ✅ Secretos configurados
+
+2. Punto 2 - Pipeline DEV (15%)
+   ✅ Workflow existe y funciona
+   ⏸️ Despliegue a Kubernetes (pendiente)
+
+3. Punto 3 - Pruebas (30%)
+   ✅ 27 tests unitarias (5 clases)
+   ✅ 16 tests integración (5 clases)
+   ✅ 25 tests E2E (5 clases)
+   ✅ 5 escenarios performance (Locust)
+   ✅ ZIP con pruebas (taller2-tests-package/)
+
+4. Punto 4 - Pipeline STAGE (15%)
+   ✅ Workflow existe y funciona
+   ⏸️ Despliegue a Kubernetes (pendiente)
+
+5. Punto 5 - Pipeline PROD (15%)
+   ✅ Workflow existe
+   ⏸️ Despliegue a Kubernetes (pendiente)
+   ⏸️ Release Notes (pendiente)
+
+6. Punto 6 - Documentación (15%)
+   ✅ INFORME_TALLER2.md actualizado
+   ✅ README_TALLER.md creado
+   ✅ Evidencias de GitHub Actions
+   ⏸️ Evidencias de Kubernetes (pendiente)
+
+🔄 PENDIENTE (Estimado 20%):
+
+- Configuración de Kubernetes (Minikube o GKE)
+- Manifiestos de despliegue K8s
+- Despliegue a 3 ambientes (dev/staging/production)
+- Evidencias de pods corriendo
+- Release Notes automáticos
+- Verificación final
+
+ARCHIVOS ACTUALIZADOS:
+- ✅ INFORME_TALLER2.md
+- ✅ README_TALLER.md
+- ✅ docs/evidencias/README.md
+- ✅ Este archivo (ESTADO_PROYECTO.txt)
+
+PRÓXIMOS PASOS:
+1. Capturar screenshots de GitHub Actions
+2. Configurar Kubernetes
+3. Crear manifiestos K8s
+4. Desplegar y evidenciar
+5. Crear ZIP final
