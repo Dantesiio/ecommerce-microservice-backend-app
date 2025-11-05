@@ -1,0 +1,206 @@
+pipeline {
+    agent none
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+    environment {
+    REGISTRY_HOST = "docker.io"
+    REGISTRY_REPO = "dantesiio/ecommerce-backend"
+        DOCKER_CREDS_ID = "docker-registry"
+        GIT_CREDENTIALS_ID = "git-credentials"
+        KUBECONFIG_STAGE_ID = "kubeconfig-stage"
+    }
+    stages {
+        stage('Checkout') {
+            agent { label 'docker' }
+            steps {
+                deleteDir()
+                checkout([
+                    $class: 'GitSCM',
+                    userRemoteConfigs: [[credentialsId: env.GIT_CREDENTIALS_ID, url: env.GIT_URL ?: 'https://github.com/Dantesiio/ecommerce-microservice-backend-app.git']],
+                    branches: [[name: env.BRANCH_NAME ?: 'dev']],
+                    extensions: [[$class: 'CloneOption', depth: 0, shallow: false]]
+                ])
+                stash name: 'workspace-src', includes: '**', excludes: '**/.git/**,**/target/**'
+            }
+        }
+        stage('Build & Unit Tests (Stage)') {
+            agent { label 'docker' }
+            steps {
+                sh './mvnw -pl proxy-client,user-service,product-service,order-service,payment-service,shipping-service clean verify'
+                stash name: 'maven-artifacts', includes: '**/target/**/*', useDefaultExcludes: false
+                stash name: 'test-reports', includes: '**/target/surefire-reports/*.xml', allowEmpty: true
+            }
+        }
+        stage('Build Container Images') {
+            agent { label 'docker' }
+            steps {
+                script {
+                    unstash 'maven-artifacts'
+                    def services = ['proxy-client', 'user-service', 'product-service', 'order-service', 'payment-service', 'shipping-service']
+                    services.each { svc ->
+                        def imageTag = "${env.REGISTRY_HOST}/${env.REGISTRY_REPO}:${svc}-${env.GIT_COMMIT}"
+                        sh """
+                            docker build \
+                                -f ${svc}/Dockerfile \
+                                -t ${imageTag} \
+                                ${svc}
+                        """
+                    }
+                }
+            }
+        }
+        stage('Push Images') {
+            agent { label 'docker' }
+            steps {
+                script {
+                    def services = ['proxy-client', 'user-service', 'product-service', 'order-service', 'payment-service', 'shipping-service']
+                    withCredentials([usernamePassword(credentialsId: env.DOCKER_CREDS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo "${DOCKER_PASS}" | docker login ${env.REGISTRY_HOST} \
+                                --username "${DOCKER_USER}" \
+                                --password-stdin
+                        """
+                        services.each { svc ->
+                            def imageRef = "${env.REGISTRY_HOST}/${env.REGISTRY_REPO}:${svc}-${env.GIT_COMMIT}"
+                            sh "docker push ${imageRef}"
+                        }
+                    }
+                }
+            }
+        }
+        stage('Deploy to Kubernetes (Stage)') {
+            agent { label 'built-in' }
+            steps {
+                script {
+                    deleteDir()
+                    unstash 'workspace-src'
+                    sh '''
+                        if command -v docker >/dev/null 2>&1; then
+                            JENKINS_ID=$(docker ps --filter "name=jenkins" --format "{{.ID}}" | head -n 1)
+                            if [ -n "$JENKINS_ID" ] && docker network inspect minikube >/dev/null 2>&1; then
+                                if ! docker network inspect minikube | grep -q "$JENKINS_ID"; then
+                                    echo "Attaching Jenkins container to minikube network"
+                                    docker network connect minikube "$JENKINS_ID" || echo "Unable to attach Jenkins container to minikube network"
+                                else
+                                    echo "Jenkins container already attached to minikube network"
+                                fi
+                            else
+                                echo "Minikube network or Jenkins container ID not available; skipping network attachment"
+                            fi
+                        else
+                            echo "Docker CLI not available; skipping network attachment"
+                        fi
+                    '''
+                    def workspaceDir = pwd()
+                    def kubectlPath = "${workspaceDir}/kubectl"
+                    sh """
+                        if [ ! -x \"${kubectlPath}\" ]; then
+                            curl -sSL -o \"${kubectlPath}\" https://dl.k8s.io/release/v1.28.4/bin/linux/amd64/kubectl
+                            chmod +x \"${kubectlPath}\"
+                        fi
+                    """
+                    withCredentials([file(credentialsId: env.KUBECONFIG_STAGE_ID, variable: 'KUBECONFIG_STAGE_FILE')]) {
+                        def kubeconfigPath = "${workspaceDir}/kubeconfig-stage.yaml"
+                        withEnv([
+                            "KUBE_CONFIG_LOCAL=${kubeconfigPath}",
+                            "KUBECONFIG=${kubeconfigPath}",
+                            "KUBE_STAGE_CLUSTER_ENDPOINT=${env.KUBE_STAGE_CLUSTER_ENDPOINT ?: ''}"
+                        ]) {
+                            sh '''
+                                cp "$KUBECONFIG_STAGE_FILE" "$KUBE_CONFIG_LOCAL"
+                                if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
+                                    perl -0pi -e "s#server: https://[^\\s]+#server: $KUBE_STAGE_CLUSTER_ENDPOINT#" "$KUBE_CONFIG_LOCAL"
+                                elif grep -q 'server: https://127.0.0.1' "$KUBE_CONFIG_LOCAL"; then
+                                    perl -0pi -e "s#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\1#" "$KUBE_CONFIG_LOCAL"
+                                fi
+                                echo '--- kubeconfig server entry ---'
+                                grep 'server:' "$KUBE_CONFIG_LOCAL" || true
+                                if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
+                                    echo "--- probing ${KUBE_STAGE_CLUSTER_ENDPOINT}/version ---"
+                                    curl -k --connect-timeout 5 "$KUBE_STAGE_CLUSTER_ENDPOINT/version" || echo "curl exited $?"
+                                fi
+                            '''
+                            sh "${kubectlPath} apply -k k8s/overlays/stage"
+                        }
+                    }
+                }
+            }
+        }
+        stage('Smoke Tests') {
+            agent { label 'built-in' }
+            steps {
+                script {
+                    deleteDir()
+                    unstash 'workspace-src'
+                    sh '''
+                        if command -v docker >/dev/null 2>&1; then
+                            JENKINS_ID=$(docker ps --filter "name=jenkins" --format "{{.ID}}" | head -n 1)
+                            if [ -n "$JENKINS_ID" ] && docker network inspect minikube >/dev/null 2>&1; then
+                                if ! docker network inspect minikube | grep -q "$JENKINS_ID"; then
+                                    echo "Attaching Jenkins container to minikube network"
+                                    docker network connect minikube "$JENKINS_ID" || echo "Unable to attach Jenkins container to minikube network"
+                                else
+                                    echo "Jenkins container already attached to minikube network"
+                                fi
+                            else
+                                echo "Minikube network or Jenkins container ID not available; skipping network attachment"
+                            fi
+                        else
+                            echo "Docker CLI not available; skipping network attachment"
+                        fi
+                    '''
+                    def workspaceDir = pwd()
+                    def kubectlPath = "${workspaceDir}/kubectl"
+                    sh """
+                        if [ ! -x \"${kubectlPath}\" ]; then
+                            curl -sSL -o \"${kubectlPath}\" https://dl.k8s.io/release/v1.28.4/bin/linux/amd64/kubectl
+                            chmod +x \"${kubectlPath}\"
+                        fi
+                    """
+                    withCredentials([file(credentialsId: env.KUBECONFIG_STAGE_ID, variable: 'KUBECONFIG_STAGE_FILE')]) {
+                        def kubeconfigPath = "${workspaceDir}/kubeconfig-stage.yaml"
+                        withEnv([
+                            "KUBE_CONFIG_LOCAL=${kubeconfigPath}",
+                            "KUBECONFIG=${kubeconfigPath}",
+                            "KUBE_STAGE_CLUSTER_ENDPOINT=${env.KUBE_STAGE_CLUSTER_ENDPOINT ?: ''}"
+                        ]) {
+                            sh '''
+                                cp "$KUBECONFIG_STAGE_FILE" "$KUBE_CONFIG_LOCAL"
+                                if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
+                                    perl -0pi -e "s#server: https://[^\\s]+#server: $KUBE_STAGE_CLUSTER_ENDPOINT#" "$KUBE_CONFIG_LOCAL"
+                                elif grep -q 'server: https://127.0.0.1' "$KUBE_CONFIG_LOCAL"; then
+                                    perl -0pi -e "s#server: https://127\\.0\\.0\\.1:(\\d+)#server: https://host.docker.internal:\\1#" "$KUBE_CONFIG_LOCAL"
+                                fi
+                                echo '--- kubeconfig server entry ---'
+                                grep 'server:' "$KUBE_CONFIG_LOCAL" || true
+                                if [ -n "$KUBE_STAGE_CLUSTER_ENDPOINT" ]; then
+                                    echo "--- probing ${KUBE_STAGE_CLUSTER_ENDPOINT}/version ---"
+                                    curl -k --connect-timeout 5 "$KUBE_STAGE_CLUSTER_ENDPOINT/version" || echo "curl exited $?"
+                                fi
+                            '''
+                            sh "${kubectlPath} -n ecommerce-stage rollout status deployment/proxy-client --timeout=180s"
+                            sh "${kubectlPath} -n ecommerce-stage run smoke-tests --rm --restart=Never --image=curlimages/curl -- http://proxy-client.ecommerce-stage.svc.cluster.local:8900/app/actuator/health"
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            node('docker') {
+                script {
+                    try {
+                        unstash 'test-reports'
+                    } catch (err) {
+                        echo "No test reports to unstash: ${err.message}"
+                    }
+                }
+                junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                cleanWs()
+            }
+        }
+    }
+}

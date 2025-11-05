@@ -1,0 +1,74 @@
+pipeline {
+    agent { label 'docker' }
+
+    options {
+        ansiColor('xterm')
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        JAVA_HOME = tool name: 'JDK11', type: 'jdk'
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
+        MVN_CMD = './mvnw'
+        SERVICES = "proxy-client user-service product-service order-service payment-service shipping-service"
+    }
+
+    triggers {
+        pollSCM('@daily')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                sh 'git submodule update --init --recursive || true'
+            }
+        }
+
+        stage('Resolve Maven Wrapper') {
+            steps {
+                sh 'chmod +x mvnw'
+                sh './mvnw -version'
+            }
+        }
+
+        stage('Build Services (Dev)') {
+            steps {
+                script {
+                    parallel SERVICES.split().collectEntries { svc ->
+                        [svc, {
+                            stage("Build ${svc}") {
+                                sh "${MVN_CMD} -pl ${svc} -am clean package -Pdev -DskipTests"
+                            }
+                        }]
+                    }
+                }
+            }
+        }
+
+        stage('Unit Tests Summary') {
+            steps {
+                sh "${MVN_CMD} test -pl ${SERVICES.replace(' ', ',')}"
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: '**/surefire-reports/TEST-*.xml'
+                    archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Dev pipeline finished successfully.'
+        }
+        failure {
+            echo 'Dev pipeline failed. Check logs.'
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
