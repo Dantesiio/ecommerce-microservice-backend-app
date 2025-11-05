@@ -150,6 +150,33 @@ Creating ecommerce-microservice-backend-app_proxy-client-container_1      ... do
 Creating ecommerce-microservice-backend-app_zipkin-container_1            ... done
 Creating ecommerce-microservice-backend-app_cloud-config-container_1      ... done
 ```
+
+### Performance & Load Testing
+
+- The Locust suite lives in `tests/performance/locustfile.py` and drives catalogue, checkout, order, shipping, and favourites flows through the proxy-client (`/app` context path by default).
+- Bring the entire landscape up first (`docker compose -f compose.yml up -d`) so every service registers in Eureka with the hostnames that the compose file wires in via environment variables.
+- Launch Locust locally with:
+    ```bash
+    locust -f tests/performance/locustfile.py --host http://localhost:8080
+    ```
+- Override `--host` or the env vars `API_CONTEXT_PATH`, `PERF_CART_ID`, `PERF_USER_ID`, `PERF_PRODUCT_IDS`, `PERF_USERNAME`, and `PERF_PASSWORD` whenever you need to target a different gateway or credential set. Example for a local run:
+    ```bash
+    export PERF_USERNAME=perf.user
+    export PERF_PASSWORD='PerfUserPass123!'
+    export PERF_CART_ID=77
+    export PERF_USER_ID=101
+    export PERF_PRODUCT_IDS=501,502,503
+    locust -f tests/performance/locustfile.py --host http://localhost:8080
+    ```
+- The suite ships with reference credentials (`perf.user` / `PerfUserPass123!`). Seed them in the `user-service` via the Flyway migration `V12__insert_perf_user_credentials.sql` (already included) or adapt them if you rely on different datasets or stronger secrets.
+- When valid credentials are configured the client fetches a JWT automatically to exercise secured flows; if authentication fails, protected scenarios are skipped so the run finishes without cascading 403s.
+
+### Known Limitations
+
+- The published Docker image for `user-service` does not yet contain the new Flyway migration. Rebuild the image (or run the service locally via `./mvnw spring-boot:run`) before load testing so that the `perf.user` seed data is available.
+- Gateway authentication through the proxy-client requires the locally seeded `user-service`; if the container image is used without rebuilding, JWT acquisition will keep failing.
+
+The module `proxy-client` continues to pass its integration tests (`./mvnw -pl proxy-client test`).
 ### Access proxy-client APIs
 You can manually test `proxy-client` APIs throughout its **Swagger** interface at the following
  URL [https://localhost:8900/swagger-ui.html](https://localhost:8900/swagger-ui.html).
