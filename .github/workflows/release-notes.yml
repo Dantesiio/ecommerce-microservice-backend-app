@@ -1,0 +1,63 @@
+name: Generate Release Notes
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release-notes:
+    name: Generate Release Notes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Release Notes
+        id: release_notes
+        uses: metcalfc/changelog-generator@v4.3.0
+        with:
+          myToken: ${{ secrets.GITHUB_TOKEN }}
+          excludeLabels: 'duplicate,question,invalid,wontfix'
+          template: |
+            ## Changes in this Release
+            
+            ### 🎉 Features
+            {{#each features}}
+            - {{this.title}} (#{{this.number}})
+            {{/each}}
+            
+            ### 🐛 Bug Fixes
+            {{#each bugfixes}}
+            - {{this.title}} (#{{this.number}})
+            {{/each}}
+            
+            ### 🔒 Security
+            {{#each security}}
+            - {{this.title}} (#{{this.number}})
+            {{/each}}
+            
+            ### 📝 Documentation
+            {{#each documentation}}
+            - {{this.title}} (#{{this.number}})
+            {{/each}}
+            
+            ### 🔧 Other Changes
+            {{#each other}}
+            - {{this.title}} (#{{this.number}})
+            {{/each}}
+            
+            ---
+            **Full Changelog**: {{previousTag}}...{{currentTag}}
+
+      - name: Create GitHub Release
+        uses: ncipollo/create-release@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: ${{ steps.release_notes.outputs.changelog }}
+          draft: false
+          prerelease: false
+
