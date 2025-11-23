@@ -10,44 +10,19 @@ terraform {
       source  = "kreuzwerker/docker"
       version = "~> 3.0"
     }
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
     }
   }
   
-  # Backend remoto para estado (configurar según ambiente)
-  backend "s3" {
-    # Configurar en terraform.tfvars o variables de entorno
-    # bucket = "ecommerce-terraform-state"
-    # key    = "terraform.tfstate"
-    # region = "us-east-1"
-    # encrypt = true
+  # Backend remoto Azure para estado
+  backend "azurerm" {
+    resource_group_name  = "terraform-state-rg"
+    storage_account_name = "tfstate85754"
+    container_name       = "tfstate"
+    key                  = "terraform.tfstate"
   }
-}
-
-# Variables de ambiente
-variable "environment" {
-  description = "Environment name (dev, stage, prod)"
-  type        = string
-  default     = "dev"
-  
-  validation {
-    condition     = contains(["dev", "stage", "prod"], var.environment)
-    error_message = "Environment must be dev, stage, or prod."
-  }
-}
-
-variable "project_name" {
-  description = "Project name"
-  type        = string
-  default     = "ecommerce-microservice"
-}
-
-variable "region" {
-  description = "AWS region"
-  type        = string
-  default     = "us-east-1"
 }
 
 # Provider configuration
@@ -103,19 +78,9 @@ module "monitoring" {
 
 module "security" {
   source = "./modules/security"
-  
+
   environment   = var.environment
   project_name  = var.project_name
   namespace     = local.namespace
   common_tags   = local.common_tags
 }
-
-# Outputs
-output "namespace" {
-  value = local.namespace
-}
-
-output "environment" {
-  value = var.environment
-}
-

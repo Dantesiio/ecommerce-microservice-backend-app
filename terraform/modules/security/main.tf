@@ -112,40 +112,42 @@ resource "kubernetes_secret" "db_credentials" {
   }
 }
 
-# Pod Security Policy (if supported)
-resource "kubernetes_pod_security_policy" "restricted" {
-  metadata {
-    name   = "restricted-psp"
-    labels = var.common_tags
-  }
-  
-  spec {
-    privileged                 = false
-    allow_privilege_escalation  = false
-    required_drop_capabilities = ["ALL"]
-    
-    volumes = [
-      "configMap",
-      "emptyDir",
-      "projected",
-      "secret",
-      "downwardAPI",
-      "persistentVolumeClaim"
-    ]
-    
-    run_as_user {
-      rule = "MustRunAsNonRoot"
-    }
-    
-    se_linux {
-      rule = "RunAsAny"
-    }
-    
-    fs_group {
-      rule = "RunAsAny"
-    }
-    
-    read_only_root_filesystem = false
-  }
-}
+# Pod Security Policy (DEPRECATED in Kubernetes 1.25+)
+# Commented out as Minikube v1.34 no longer supports PSP
+# Use Pod Security Standards (PSS) instead in production
+# resource "kubernetes_pod_security_policy" "restricted" {
+#   metadata {
+#     name   = "restricted-psp"
+#     labels = var.common_tags
+#   }
+#
+#   spec {
+#     privileged                 = false
+#     allow_privilege_escalation  = false
+#     required_drop_capabilities = ["ALL"]
+#
+#     volumes = [
+#       "configMap",
+#       "emptyDir",
+#       "projected",
+#       "secret",
+#       "downwardAPI",
+#       "persistentVolumeClaim"
+#     ]
+#
+#     run_as_user {
+#       rule = "MustRunAsNonRoot"
+#     }
+#
+#     se_linux {
+#       rule = "RunAsAny"
+#     }
+#
+#     fs_group {
+#       rule = "RunAsAny"
+#     }
+#
+#     read_only_root_filesystem = false
+#   }
+# }
 
