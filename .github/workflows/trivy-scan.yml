@@ -1,0 +1,65 @@
+name: Trivy Security Scan
+
+on:
+    push:
+        branches: [dev, master]
+    pull_request:
+        branches: [dev, master]
+    schedule:
+        - cron: "0 0 * * 0"
+
+jobs:
+    trivy-scan:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                service:
+                    [
+                        user-service,
+                        product-service,
+                        order-service,
+                        payment-service,
+                        shipping-service,
+                        proxy-client,
+                    ]
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Set up JDK 11
+              uses: actions/setup-java@v3
+              with:
+                  java-version: "11"
+                  distribution: "temurin"
+
+            - name: Build service
+              run: ./mvnw -pl ${{ matrix.service }} clean package -DskipTests
+
+            - name: Build Docker image
+              run: |
+                  docker build -t ${{ matrix.service }}:test \
+                    -f ${{ matrix.service }}/Dockerfile \
+                    ${{ matrix.service }}
+
+            - name: Run Trivy vulnerability scanner
+              uses: aquasecurity/trivy-action@master
+              with:
+                  image-ref: "${{ matrix.service }}:test"
+                  format: "sarif"
+                  output: "trivy-results-${{ matrix.service }}.sarif"
+                  severity: "CRITICAL,HIGH"
+
+            - name: Upload Trivy results to GitHub Security
+              uses: github/codeql-action/upload-sarif@v2
+              if: always()
+              with:
+                  sarif_file: "trivy-results-${{ matrix.service }}.sarif"
+                  category: ${{ matrix.service }}
+
+            - name: Run Trivy in table format
+              uses: aquasecurity/trivy-action@master
+              with:
+                  image-ref: "${{ matrix.service }}:test"
+                  format: "table"
+                  severity: "CRITICAL,HIGH"
