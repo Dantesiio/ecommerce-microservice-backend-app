@@ -1,0 +1,27 @@
+# ZAP Scanning Rules
+# Format: ID	THRESHOLD	[WARN|FAIL|IGNORE|INFO]
+#
+# Common vulnerability IDs:
+# 10021 - X-Content-Type-Options header missing
+# 10020 - X-Frame-Options header not set
+# 10016 - Web Browser XSS Protection Not Enabled
+# 10038 - Content Security Policy (CSP) Header Not Set
+# 10096 - Timestamp Disclosure
+# 90022 - Application Error Disclosure
+
+# Ignore low-priority headers for dev environment
+10021	OFF	IGNORE
+10096	OFF	IGNORE
+
+# Warn on missing security headers
+10020	MEDIUM	WARN
+10016	MEDIUM	WARN
+10038	MEDIUM	WARN
+
+# Fail on high-severity issues
+40012	HIGH	FAIL	# Cross Site Scripting
+40014	HIGH	FAIL	# Cross Site Scripting (Persistent)
+40016	HIGH	FAIL	# Cross Site Scripting (Reflected)
+40018	HIGH	FAIL	# SQL Injection
+90019	HIGH	FAIL	# Server Side Code Injection
+90020	HIGH	FAIL	# Remote OS Command Injection

@@ -1,0 +1,190 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-microservices
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  microservices-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "microservices-overview",
+        "title": "Ecommerce Microservices Overview",
+        "tags": ["microservices", "ecommerce"],
+        "timezone": "browser",
+        "schemaVersion": 16,
+        "version": 0,
+        "refresh": "30s",
+        "panels": [
+          {
+            "id": 1,
+            "gridPos": {
+              "x": 0,
+              "y": 0,
+              "w": 12,
+              "h": 8
+            },
+            "type": "graph",
+            "title": "Pod CPU Usage",
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"default\",pod=~\".*-service.*\"}[5m])) by (pod)",
+                "legendFormat": "{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "short",
+                "label": "CPU Cores"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "gridPos": {
+              "x": 12,
+              "y": 0,
+              "w": 12,
+              "h": 8
+            },
+            "type": "graph",
+            "title": "Pod Memory Usage",
+            "targets": [
+              {
+                "expr": "sum(container_memory_working_set_bytes{namespace=\"default\",pod=~\".*-service.*\"}) by (pod)",
+                "legendFormat": "{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "bytes",
+                "label": "Memory"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "gridPos": {
+              "x": 0,
+              "y": 8,
+              "w": 8,
+              "h": 8
+            },
+            "type": "stat",
+            "title": "Running Pods",
+            "targets": [
+              {
+                "expr": "count(kube_pod_status_phase{namespace=\"default\",phase=\"Running\"})",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "colorMode": "background",
+              "graphMode": "area",
+              "justifyMode": "auto",
+              "orientation": "auto",
+              "reduceOptions": {
+                "values": false,
+                "calcs": ["lastNotNull"]
+              }
+            }
+          },
+          {
+            "id": 4,
+            "gridPos": {
+              "x": 8,
+              "y": 8,
+              "w": 8,
+              "h": 8
+            },
+            "type": "stat",
+            "title": "Failed Pods",
+            "targets": [
+              {
+                "expr": "count(kube_pod_status_phase{namespace=\"default\",phase=\"Failed\"})",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "colorMode": "background",
+              "graphMode": "area"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "value": 0,
+                      "color": "green"
+                    },
+                    {
+                      "value": 1,
+                      "color": "red"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 5,
+            "gridPos": {
+              "x": 16,
+              "y": 8,
+              "w": 8,
+              "h": 8
+            },
+            "type": "stat",
+            "title": "Pending Pods",
+            "targets": [
+              {
+                "expr": "count(kube_pod_status_phase{namespace=\"default\",phase=\"Pending\"})",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "colorMode": "background",
+              "graphMode": "area"
+            }
+          },
+          {
+            "id": 6,
+            "gridPos": {
+              "x": 0,
+              "y": 16,
+              "w": 24,
+              "h": 8
+            },
+            "type": "graph",
+            "title": "HTTP Request Rate (actuator metrics)",
+            "targets": [
+              {
+                "expr": "sum(rate(http_server_requests_seconds_count{namespace=\"default\"}[5m])) by (uri, status)",
+                "legendFormat": "{{uri}} - {{status}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "reqps",
+                "label": "Requests/sec"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          }
+        ]
+      }
+    }
