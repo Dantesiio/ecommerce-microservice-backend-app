@@ -105,7 +105,7 @@ jobs:
             -Dsonar.java.test.binaries=target/test-classes
             -Dsonar.junit.reportPaths=test-results
             -Dsonar.coverage.jacoco.xmlReportPaths=**/target/site/jacoco/jacoco.xml
-            -Dsonar.exclusions=**/target/**,**/*.jar
+            -Dsonar.exclusions=**/target/**,**/*.jar,**/build-wrapper-dump.json,**/Dockerfile
             -Dsonar.test.exclusions=**/test/**
 
   # Job 3: Security Scan with Trivy
@@ -116,6 +116,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download user-service jar
+        uses: actions/download-artifact@v4
+        with:
+          name: user-service-jar
+          path: user-service/target
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -133,7 +139,7 @@ jobs:
 
       - name: Build Docker images for scanning
         run: |
-          docker build -t test-image:latest -f user-service/Dockerfile user-service/
+          docker build -t test-image:latest -f user-service/Dockerfile .
 
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@master
