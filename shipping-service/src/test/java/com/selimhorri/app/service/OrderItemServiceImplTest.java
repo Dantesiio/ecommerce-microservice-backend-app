@@ -68,6 +68,58 @@ class OrderItemServiceImplTest {
     }
 
     @Test
+    @DisplayName("findById returns enriched order item when exists")
+    void findByIdReturnsEnriched() {
+        OrderItem orderItem = sampleOrderItem();
+        OrderItemId id = new OrderItemId(1, 10);
+        when(orderItemRepository.findById(id)).thenReturn(Optional.of(orderItem));
+        when(restTemplate.getForObject(AppConstant.DiscoveredDomainsApi.PRODUCT_SERVICE_API_URL + "/" + 1, ProductDto.class))
+            .thenReturn(ProductDto.builder().productId(1).productTitle("Phone").build());
+        when(restTemplate.getForObject(AppConstant.DiscoveredDomainsApi.ORDER_SERVICE_API_URL + "/" + 10, OrderDto.class))
+            .thenReturn(OrderDto.builder().orderId(10).orderDesc("Order").build());
+
+        OrderItemDto result = orderItemService.findById(id);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getProductDto().getProductTitle()).isEqualTo("Phone");
+        verify(orderItemRepository).findById(id);
+    }
+
+    @Test
+    @DisplayName("save creates new order item")
+    void saveCreatesOrderItem() {
+        OrderItem orderItem = sampleOrderItem();
+        OrderItemDto dto = OrderItemDto.builder()
+            .productId(1)
+            .orderId(10)
+            .orderedQuantity(3)
+            .build();
+        when(orderItemRepository.save(any(OrderItem.class))).thenReturn(orderItem);
+
+        OrderItemDto result = orderItemService.save(dto);
+
+        assertThat(result).isNotNull();
+        verify(orderItemRepository).save(any(OrderItem.class));
+    }
+
+    @Test
+    @DisplayName("update updates existing order item")
+    void updateUpdatesOrderItem() {
+        OrderItem orderItem = sampleOrderItem();
+        OrderItemDto dto = OrderItemDto.builder()
+            .productId(1)
+            .orderId(10)
+            .orderedQuantity(5)
+            .build();
+        when(orderItemRepository.save(any(OrderItem.class))).thenReturn(orderItem);
+
+        OrderItemDto result = orderItemService.update(dto);
+
+        assertThat(result).isNotNull();
+        verify(orderItemRepository).save(any(OrderItem.class));
+    }
+
+    @Test
     @DisplayName("deleteById delegates to repository")
     void deleteByIdDelegates() {
         OrderItemId id = new OrderItemId(1, 10);

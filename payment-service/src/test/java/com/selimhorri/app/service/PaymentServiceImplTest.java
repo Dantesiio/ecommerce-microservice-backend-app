@@ -1,6 +1,7 @@
 package com.selimhorri.app.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -72,6 +73,41 @@ class PaymentServiceImplTest {
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> paymentService.findById(77))
             .isInstanceOf(PaymentNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("save creates new payment")
+    void saveCreatesPayment() {
+        Payment payment = samplePayment();
+        PaymentDto dto = PaymentDto.builder()
+            .orderDto(OrderDto.builder().orderId(7).build())
+            .isPayed(true)
+            .paymentStatus(PaymentStatus.COMPLETED)
+            .build();
+        when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
+
+        PaymentDto result = paymentService.save(dto);
+
+        assertThat(result).isNotNull();
+        verify(paymentRepository).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("update updates existing payment")
+    void updateUpdatesPayment() {
+        Payment payment = samplePayment();
+        PaymentDto dto = PaymentDto.builder()
+            .paymentId(12)
+            .orderDto(OrderDto.builder().orderId(7).build())
+            .isPayed(false)
+            .paymentStatus(PaymentStatus.IN_PROGRESS)
+            .build();
+        when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
+
+        PaymentDto result = paymentService.update(dto);
+
+        assertThat(result).isNotNull();
+        verify(paymentRepository).save(any(Payment.class));
     }
 
     @Test

@@ -23,9 +23,8 @@ jobs:
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.11.0
         with:
-          target: 'http://testphp.vulnweb.com/'
-          # TODO: Change to actual deployed service URL
-          # target: 'https://dev.ecommerce.example.com'
+          target: 'http://localhost:8900/app'
+          # For production, use: 'https://your-production-domain.com/app'
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a'
 

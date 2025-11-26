@@ -2,6 +2,7 @@ package com.selimhorri.app.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -85,12 +86,55 @@ class OrderServiceImplTest {
     }
 
     @Test
+    @DisplayName("findById returns order when exists")
+    void findByIdReturnsOrder() {
+        Order order = sampleOrder();
+        when(orderRepository.findById(7)).thenReturn(Optional.of(order));
+
+        OrderDto result = orderService.findById(7);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getOrderId()).isEqualTo(7);
+        verify(orderRepository).findById(7);
+    }
+
+    @Test
     @DisplayName("findById throws when entity missing")
     void findByIdMissingThrows() {
         when(orderRepository.findById(100)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.findById(100))
             .isInstanceOf(OrderNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("save creates new order")
+    void saveCreatesOrder() {
+        Order order = sampleOrder();
+        OrderDto dto = OrderDto.builder()
+            .orderDate(order.getOrderDate())
+            .orderDesc("New order")
+            .orderFee(50.0)
+            .cartDto(CartDto.builder().cartId(4).build())
+            .build();
+        when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        OrderDto result = orderService.save(dto);
+
+        assertThat(result).isNotNull();
+        verify(orderRepository).save(any(Order.class));
+    }
+
+    @Test
+    @DisplayName("deleteById removes order")
+    void deleteByIdRemovesOrder() {
+        Order order = sampleOrder();
+        when(orderRepository.findById(7)).thenReturn(Optional.of(order));
+
+        orderService.deleteById(7);
+
+        verify(orderRepository).findById(7);
+        verify(orderRepository).delete(any(Order.class));
     }
 
     private Order sampleOrder() {

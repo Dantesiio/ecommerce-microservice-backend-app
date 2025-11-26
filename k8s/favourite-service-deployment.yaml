@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: favourite-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: favourite-service
+  template:
+    metadata:
+      labels:
+        app: favourite-service
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: favourite-service
+          image: dantesiio/ecommerce-backend:favourite-service-latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8800
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: dev
+            - name: SPRING_CONFIG_IMPORT
+              value: optional:configserver:http://cloud-config-service:9296
+            - name: SPRING_CLOUD_CONFIG_URI
+              value: http://cloud-config-service:9296
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: http://eureka-service:8761/eureka/
+            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+              value: http://eureka-service:8761/eureka/
+            - name: SPRING_ZIPKIN_BASE_URL
+              value: http://zipkin-service:9411
+            - name: SPRING_APPLICATION_JSON
+              value: '{"eureka":{"client":{"service-url":{"defaultZone":"http://eureka-service:8761/eureka"}}}}'
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8800
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8800
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "256Mi"
+              ephemeral-storage: "256Mi"
+            limits:
+              cpu: "750m"
+              memory: "512Mi"
+
