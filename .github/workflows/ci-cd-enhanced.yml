@@ -66,6 +66,15 @@ jobs:
           path: '**/target/site/jacoco/**'
           retention-days: 30
 
+      # ⬇️ NUEVO: artifact con el JAR de user-service
+      - name: Upload user-service jar
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: user-service-jar
+          path: user-service/target/*.jar
+          retention-days: 1
+
   # Job 2: SonarQube Analysis
   sonarqube:
     name: SonarQube Analysis
@@ -101,13 +110,10 @@ jobs:
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
             -Dsonar.sources=.
-            -Dsonar.tests=.
             -Dsonar.java.test.binaries=target/test-classes
             -Dsonar.junit.reportPaths=test-results
             -Dsonar.coverage.jacoco.xmlReportPaths=**/target/site/jacoco/jacoco.xml
             -Dsonar.exclusions=**/target/**,**/*.jar,**/build-wrapper-dump.json,**/Dockerfile
-            -Dsonar.test.exclusions=**/test/**
-
   # Job 3: Security Scan with Trivy
   security-scan:
     name: Security Scan (Trivy)
@@ -121,7 +127,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: user-service-jar
-          path: user-service/target
+          path: user-service/target    # aquí se recrea la carpeta target
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
