@@ -8,6 +8,10 @@ on:
   release:
     types: [ created ]
 
+permissions:
+  contents: write          
+  security-events: write 
+
 env:
   JAVA_VERSION: '11'
   MAVEN_OPTS: '-Dmaven.test.failure.ignore=true'
@@ -123,7 +127,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
 
@@ -142,6 +146,7 @@ jobs:
   # Job 4: Semantic Versioning
   semantic-version:
     name: Semantic Versioning
+    if: github.event_name == 'push' 
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.semantic.outputs.version }}
