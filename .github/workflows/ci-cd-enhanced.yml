@@ -224,12 +224,12 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: .                        # raíz del repo
+          file: user-service/Dockerfile     # 👈 ruta real del Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:buildcache,mode=max
-
   # Job 6: Deploy to Dev
   deploy-dev:
     name: Deploy to Dev
