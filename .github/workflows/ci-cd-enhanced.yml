@@ -259,8 +259,8 @@ jobs:
 
       - name: Configure kubectl
         run: |
-          echo "${{ secrets.KUBECONFIG_DEV }}" | base64 -d > kubeconfig
-          export KUBECONFIG=kubeconfig
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_DEV }}" | base64 -d > $HOME/.kube/config
 
       - name: Deploy to Kubernetes
         run: |
