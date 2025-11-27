@@ -20,14 +20,14 @@ env:
 
 jobs:
   # Job 1: Build and Unit Tests
-  build-and-test:
+    build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for better analysis
+          fetch-depth: 0
 
       - name: Set up JDK 11
         uses: actions/setup-java@v4
@@ -50,6 +50,15 @@ jobs:
             -Dcoverage=true \
             -Dmaven.test.failure.ignore=true
 
+      # ✅ subir el jar de user-service
+      - name: Upload user-service jar
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: user-service-jar
+          path: user-service/target/*.jar
+          retention-days: 7
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
@@ -65,15 +74,6 @@ jobs:
           name: coverage-reports
           path: '**/target/site/jacoco/**'
           retention-days: 30
-
-      # ⬇️ NUEVO: artifact con el JAR de user-service
-      - name: Upload user-service jar
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: user-service-jar
-          path: user-service/target/*.jar
-          retention-days: 1
 
   # Job 2: SonarQube Analysis
   sonarqube:
@@ -200,6 +200,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # ✅ DESCARGAR EL JAR COMPILADO
+      - name: Download user-service jar
+        uses: actions/download-artifact@v4
+        with:
+          name: user-service-jar
+          path: user-service/target
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -224,8 +231,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: .                        # raíz del repo
-          file: user-service/Dockerfile     # 👈 ruta real del Dockerfile
+          context: .
+          file: user-service/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:buildcache
