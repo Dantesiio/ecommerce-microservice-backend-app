@@ -2,19 +2,19 @@ name: Enhanced CI/CD Pipeline
 
 on:
   push:
-    branches: [ dev, stage, main ]
+    branches: [dev, stage, main]
   pull_request:
-    branches: [ dev, stage, main ]
+    branches: [dev, stage, main]
   release:
-    types: [ created ]
+    types: [created]
 
 permissions:
-  contents: write          
-  security-events: write 
+  contents: write
+  security-events: write
 
 env:
-  JAVA_VERSION: '11'
-  MAVEN_OPTS: '-Dmaven.test.failure.ignore=true'
+  JAVA_VERSION: "11"
+  MAVEN_OPTS: "-Dmaven.test.failure.ignore=true"
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
   SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
 
@@ -33,7 +33,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
+          distribution: "temurin"
           cache: maven
 
       - name: Cache SonarQube packages
@@ -64,7 +64,7 @@ jobs:
         if: always()
         with:
           name: test-results
-          path: '**/target/surefire-reports/*.xml'
+          path: "**/target/surefire-reports/*.xml"
           retention-days: 30
 
       - name: Upload coverage reports
@@ -72,7 +72,7 @@ jobs:
         if: always()
         with:
           name: coverage-reports
-          path: '**/target/site/jacoco/**'
+          path: "**/target/site/jacoco/**"
           retention-days: 30
 
   # Job 2: SonarQube Analysis
@@ -91,7 +91,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
+          distribution: "temurin"
           cache: maven
 
       # 👇 Nuevo: compilar para generar target/classes
@@ -133,22 +133,22 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: user-service-jar
-          path: user-service/target    # aquí se recrea la carpeta target
+          path: user-service/target # aquí se recrea la carpeta target
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         continue-on-error: true
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
 
       - name: Build Docker images for scanning
         run: |
@@ -157,15 +157,15 @@ jobs:
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'test-image:latest'
-          format: 'table'
-          exit-code: '0'
-          severity: 'CRITICAL,HIGH'
+          image-ref: "test-image:latest"
+          format: "table"
+          exit-code: "0"
+          severity: "CRITICAL,HIGH"
 
   # Job 4: Semantic Versioning
   semantic-version:
     name: Semantic Versioning
-    if: github.event_name == 'push' 
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.semantic.outputs.version }}
@@ -255,17 +255,17 @@ jobs:
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
         with:
-          version: 'latest'
+          version: "latest"
 
       - name: Configure kubectl
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG_DEV }}" | base64 -d > $HOME/.kube/config
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > ~/.kube/config
 
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/user-service user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:${{ needs.semantic-version.outputs.tag }} -n ecommerce-dev
-          kubectl rollout status deployment/user-service -n ecommerce-dev
+          kubectl set image deployment/user-service user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:${{ needs.semantic-version.outputs.tag }} -n ecommerce-microservice-dev
+          kubectl rollout status deployment/user-service -n ecommerce-microservice-dev
 
   # Job 7: Deploy to Stage (requires approval)
   deploy-stage:
@@ -284,7 +284,7 @@ jobs:
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
         with:
-          version: 'latest'
+          version: "latest"
 
       - name: Configure kubectl
         run: |
@@ -313,7 +313,7 @@ jobs:
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
         with:
-          version: 'latest'
+          version: "latest"
 
       - name: Configure kubectl
         run: |
@@ -332,16 +332,16 @@ jobs:
           name: Release ${{ needs.semantic-version.outputs.tag }}
           body: |
             ## Changes in this Release
-            
+
             ### Features
             - Automated release notes
-            
+
             ### Bug Fixes
             - See commit history
-            
+
             ### Security
             - Security scan passed with Trivy
-            
+
             Full changelog: ${{ github.server_url }}/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }}
           draft: false
           prerelease: false

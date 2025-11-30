@@ -1,42 +1,35 @@
+# Terraform configuration for Azure AKS deployment
+# Use this file to create the AKS cluster infrastructure
+
 terraform {
   required_version = ">= 1.0"
-  
+
   required_providers {
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.23"
-    }
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "~> 3.0"
-    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 3.0"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.23"
+    }
   }
-  
+
   # Backend remoto Azure para estado
   backend "azurerm" {
     resource_group_name  = "terraform-state-rg"
     storage_account_name = "tfstate85754"
     container_name       = "tfstate"
-    key                  = "terraform.tfstate"
+    key                  = "azure-aks.tfstate"
   }
 }
 
-# Provider configuration
-provider "kubernetes" {
-  config_path    = var.kubeconfig_path
-  config_context = var.kube_context
-}
-
-provider "docker" {
-  host = "unix:///var/run/docker.sock"
-}
-
-provider "aws" {
-  region = var.region
+provider "azurerm" {
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 
 # Local values
@@ -46,41 +39,20 @@ locals {
     Project     = var.project_name
     ManagedBy   = "Terraform"
   }
-  
-  namespace = "${var.project_name}-${var.environment}"
 }
 
-# Módulos
-module "kubernetes_cluster" {
-  source = "./modules/kubernetes"
-  
-  environment      = var.environment
-  project_name     = var.project_name
-  namespace        = local.namespace
-  common_tags      = local.common_tags
-  docker_registry  = var.docker_registry
-  docker_repository = var.docker_repository
-  replica_count    = var.replica_count
-  resource_limits  = var.resource_limits
-}
+# Create AKS cluster
+module "azure_aks" {
+  source = "./modules/azure-aks"
 
-module "monitoring" {
-  source = "./modules/monitoring"
-  
-  environment     = var.environment
-  project_name    = var.project_name
-  namespace        = local.namespace
-  common_tags      = local.common_tags
-  enable_monitoring = var.enable_monitoring
-  enable_logging   = var.enable_logging
-  enable_tracing   = var.enable_tracing
-}
-
-module "security" {
-  source = "./modules/security"
-
-  environment   = var.environment
-  project_name  = var.project_name
-  namespace     = local.namespace
-  common_tags   = local.common_tags
+  project_name       = var.project_name
+  environment        = var.environment
+  location           = var.azure_location
+  kubernetes_version = var.kubernetes_version
+  node_count         = var.aks_node_count
+  min_node_count     = var.aks_min_node_count
+  max_node_count     = var.aks_max_node_count
+  vm_size            = var.aks_vm_size
+  create_acr         = var.create_acr
+  common_tags        = local.common_tags
 }
