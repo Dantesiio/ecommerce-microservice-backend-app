@@ -266,10 +266,21 @@ jobs:
         run: |
           kubectl get ns ecommerce-microservice-dev || kubectl create ns ecommerce-microservice-dev
 
-      - name: Deploy to Kubernetes
-        run: |
-          kubectl set image deployment/user-service user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:${{ needs.semantic-version.outputs.tag }} -n ecommerce-microservice-dev
-          kubectl rollout status deployment/user-service -n ecommerce-microservice-dev
+            - name: Deploy to Kubernetes
+              run: |
+                IMAGE_TAG="${{ needs.semantic-version.outputs.tag }}"
+                echo "Using IMAGE TAG: $IMAGE_TAG"
+
+                if [ -z "$IMAGE_TAG" ]; then
+                  echo "ERROR: Image tag is empty. Deployment aborted."
+                  exit 1
+                fi
+
+                kubectl set image deployment/user-service \
+                  user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:$IMAGE_TAG \
+                  -n ecommerce-microservice-dev
+
+                kubectl rollout status deployment/user-service -n ecommerce-microservice-dev
 
   # Job 7: Deploy to Stage (requires approval)
   deploy-stage:
