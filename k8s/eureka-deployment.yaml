@@ -15,7 +15,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: eureka
-          image: dantesiio/ecommerce-backend:eureka-181992f417983a52afe990098c1ab043bbad5c36
+          image: us-central1-docker.pkg.dev/ecommerce-microservice-dev/ecommerce-repo/eureka:0.1.0
           ports:
             - containerPort: 8761
           env:
@@ -25,20 +25,20 @@ spec:
               value: "false"
           livenessProbe:
             httpGet:
-              path: /actuator/health/liveness
+              path: /actuator/health
               port: 8761
             initialDelaySeconds: 60
-            periodSeconds: 10
+            periodSeconds: 15
             timeoutSeconds: 5
-            failureThreshold: 3
+            failureThreshold: 10
           readinessProbe:
             httpGet:
-              path: /actuator/health/readiness
+              path: /actuator/health
               port: 8761
             initialDelaySeconds: 30
-            periodSeconds: 5
-            timeoutSeconds: 3
-            failureThreshold: 3
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
           resources:
             requests:
               cpu: "100m"

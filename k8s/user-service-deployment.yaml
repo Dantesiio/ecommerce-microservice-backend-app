@@ -15,7 +15,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: user-service
-          image: dantesiio/ecommerce-backend:user-service-181992f417983a52afe990098c1ab043bbad5c36
+          image: us-central1-docker.pkg.dev/ecommerce-microservice-dev/ecommerce-repo/user-service:0.1.0
           imagePullPolicy: Always
           ports:
             - containerPort: 8700
@@ -32,27 +32,26 @@ spec:
               value: http://eureka-service:8761/eureka/
             - name: SPRING_APPLICATION_JSON
               value: '{"eureka":{"client":{"service-url":{"defaultZone":"http://eureka-service:8761/eureka"}}}}'
-          livenessProbe:
-            httpGet:
-              path: /actuator/health/liveness
-              port: 8700
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /actuator/health/readiness
-              port: 8700
-            initialDelaySeconds: 30
-            periodSeconds: 5
-            timeoutSeconds: 3
-            failureThreshold: 3
+  #           # livenessProbe:
+  #             httpGet:
+  #               path: /actuator/health
+  #               port: 8700
+  #             initialDelaySeconds: 180
+  #             periodSeconds: 10
+  #             timeoutSeconds: 5
+  #             failureThreshold: 10
+  #           # readinessProbe:
+  #             httpGet:
+  #               path: /actuator/health
+  #               port: 8700
+  #             initialDelaySeconds: 120
+  #             periodSeconds: 5
+  #             timeoutSeconds: 3
+  #             failureThreshold: 10
           resources:
             requests:
-              cpu: "150m"
-              memory: "256Mi"
-              ephemeral-storage: "256Mi"
+              cpu: "50m"
+              memory: "96Mi"
             limits:
-              cpu: "750m"
-              memory: "512Mi"
+              cpu: "500m"
+              memory: "256Mi"

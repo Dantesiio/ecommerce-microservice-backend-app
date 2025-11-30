@@ -15,7 +15,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: cloud-config
-          image: dantesiio/ecommerce-backend:cloud-config-181992f417983a52afe990098c1ab043bbad5c36
+          image: us-central1-docker.pkg.dev/ecommerce-microservice-dev/ecommerce-repo/cloud-config:0.1.0
           ports:
             - containerPort: 9296
           env:
@@ -25,27 +25,40 @@ spec:
               value: http://eureka-service:8761/eureka/
             - name: SPRING_APPLICATION_JSON
               value: '{"eureka":{"client":{"service-url":{"defaultZone":"http://eureka-service:8761/eureka"}}}}'
+            # Configuración de Spring Cloud Config Server - Repositorio Git
+            - name: SPRING_CLOUD_CONFIG_SERVER_GIT_URI
+              value: https://github.com/SelimHorri/cloud-config-server
+            - name: SPRING_CLOUD_CONFIG_SERVER_GIT_CLONE_ON_START
+              value: "false"
+            - name: SPRING_CLOUD_CONFIG_SERVER_GIT_DEFAULT_LABEL
+              value: main
+            - name: SPRING_CLOUD_CONFIG_SERVER_GIT_SKIP_SSL_VALIDATION
+              value: "false"
+            - name: SPRING_CLOUD_CONFIG_SERVER_GIT_TIMEOUT
+              value: "10"
+            # Configuración de Zipkin
+            - name: SPRING_ZIPKIN_BASE_URL
+              value: http://zipkin-service:9411/
           livenessProbe:
             httpGet:
-              path: /actuator/health/liveness
+              path: /actuator/health
               port: 9296
-            initialDelaySeconds: 60
-            periodSeconds: 10
+            initialDelaySeconds: 120
+            periodSeconds: 15
             timeoutSeconds: 5
-            failureThreshold: 3
+            failureThreshold: 10
           readinessProbe:
             httpGet:
-              path: /actuator/health/readiness
+              path: /actuator/health
               port: 9296
-            initialDelaySeconds: 30
-            periodSeconds: 5
-            timeoutSeconds: 3
-            failureThreshold: 3
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
           resources:
             requests:
-              cpu: "100m"
-              memory: "256Mi"
-              ephemeral-storage: "256Mi"
+              cpu: "50m"
+              memory: "128Mi"
             limits:
               cpu: "500m"
-              memory: "512Mi"
+              memory: "384Mi"
