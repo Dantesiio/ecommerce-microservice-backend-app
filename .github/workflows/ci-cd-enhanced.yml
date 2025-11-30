@@ -268,7 +268,7 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          IMAGE_TAG="${{ needs.semantic-version.outputs.tag }}"
+          IMAGE_TAG="${{ needs.semantic-version.outputs.tag || 'latest' }}"
           echo "Using IMAGE TAG: $IMAGE_TAG"
 
           if [ -z "$IMAGE_TAG" ]; then
