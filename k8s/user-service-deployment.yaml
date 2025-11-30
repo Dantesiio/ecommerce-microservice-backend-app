@@ -15,7 +15,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: user-service
-          image: dantesiio/ecommerce-backend:user-service-181992f417983a52afe990098c1ab043bbad5c36
+          image: dantesiio/ecommerce-backend:dev
           imagePullPolicy: Always
           ports:
             - containerPort: 8700

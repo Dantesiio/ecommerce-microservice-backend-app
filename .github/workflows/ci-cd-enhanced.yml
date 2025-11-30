@@ -262,10 +262,14 @@ jobs:
           mkdir -p ~/.kube
           echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > ~/.kube/config
 
+      - name: Ensure namespace exists
+        run: |
+          kubectl get ns ecommerce-microservice-dev || kubectl create ns ecommerce-microservice-dev
+
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/user-service user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:${{ needs.semantic-version.outputs.tag }} -n ecommerce-dev
-          kubectl rollout status deployment/user-service -n ecommerce-dev
+          kubectl set image deployment/user-service user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:${{ needs.semantic-version.outputs.tag }} -n ecommerce-microservice-dev
+          kubectl rollout status deployment/user-service -n ecommerce-microservice-dev
 
   # Job 7: Deploy to Stage (requires approval)
   deploy-stage:
