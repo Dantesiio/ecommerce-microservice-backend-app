@@ -168,8 +168,8 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.semantic.outputs.version }}
-      tag: ${{ steps.semantic.outputs.tag }}
+      version: ${{ steps.semantic.outputs.new_version }}
+      tag: ${{ steps.semantic.outputs.new_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -268,13 +268,9 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          IMAGE_TAG="${{ needs.semantic-version.outputs.tag || 'latest' }}"
-          echo "Using IMAGE TAG: $IMAGE_TAG"
+          IMAGE_TAG="${{ github.ref_name }}"
 
-          if [ -z "$IMAGE_TAG" ]; then
-            echo "ERROR: Image tag is empty. Deployment aborted."
-            exit 1
-          fi
+          echo "Using IMAGE TAG: $IMAGE_TAG"
 
           kubectl set image deployment/user-service \
             user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:$IMAGE_TAG \
@@ -308,7 +304,13 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/user-service user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:${{ needs.semantic-version.outputs.tag }} -n ecommerce-stage
+          IMAGE_TAG="${{ needs.semantic-version.outputs.tag }}"
+          echo "Using IMAGE TAG: $IMAGE_TAG"
+
+          kubectl set image deployment/user-service \
+            user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:$IMAGE_TAG \
+            -n ecommerce-stage
+
           kubectl rollout status deployment/user-service -n ecommerce-stage
 
   # Job 8: Deploy to Production (requires approval)
@@ -337,7 +339,13 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/user-service user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:${{ needs.semantic-version.outputs.tag }} -n ecommerce-prod
+          IMAGE_TAG="${{ needs.semantic-version.outputs.tag }}"
+          echo "Using IMAGE TAG: $IMAGE_TAG"
+
+          kubectl set image deployment/user-service \
+            user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:$IMAGE_TAG \
+            -n ecommerce-prod
+
           kubectl rollout status deployment/user-service -n ecommerce-prod
 
       - name: Generate Release Notes

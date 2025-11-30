@@ -35,7 +35,7 @@ variable "min_node_count" {
 variable "max_node_count" {
   description = "Maximum node count for autoscaling"
   type        = number
-  default     = 5
+  default     = 3
 }
 
 variable "vm_size" {
