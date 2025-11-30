@@ -15,7 +15,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: eureka
-          image: dantesiio/ecommerce-backend:eureka-181992f417983a52afe990098c1ab043bbad5c36
+          image: dantesiio/ecommerce-backend:dev
           ports:
             - containerPort: 8761
           env:

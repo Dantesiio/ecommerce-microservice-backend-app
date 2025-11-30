@@ -15,7 +15,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: shipping-service
-          image: dantesiio/ecommerce-backend:shipping-service-latest
+          image: dantesiio/ecommerce-backend:dev
           imagePullPolicy: Always
           ports:
             - containerPort: 8600
@@ -58,4 +58,3 @@ spec:
             limits:
               cpu: "750m"
               memory: "512Mi"
-

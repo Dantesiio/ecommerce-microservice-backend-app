@@ -15,7 +15,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: proxy-client
-          image: dantesiio/ecommerce-backend:proxy-client-181992f417983a52afe990098c1ab043bbad5c36
+          image: dantesiio/ecommerce-backend:dev
           ports:
             - containerPort: 8900
           env:
