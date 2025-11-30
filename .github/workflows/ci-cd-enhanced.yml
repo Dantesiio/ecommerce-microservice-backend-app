@@ -264,8 +264,8 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/user-service user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:${{ needs.semantic-version.outputs.tag }} -n ecommerce-microservice-dev
-          kubectl rollout status deployment/user-service -n ecommerce-microservice-dev
+          kubectl set image deployment/user-service user-service=${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:${{ needs.semantic-version.outputs.tag }} -n ecommerce-dev
+          kubectl rollout status deployment/user-service -n ecommerce-dev
 
   # Job 7: Deploy to Stage (requires approval)
   deploy-stage:
