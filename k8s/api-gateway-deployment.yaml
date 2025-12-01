@@ -15,7 +15,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: api-gateway
-          image: dantesiio/ecommerce-backend:dev
+          image: dantesiio/api-gateway-ecommerce-boot:${PROJECT_VERSION}dev
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
