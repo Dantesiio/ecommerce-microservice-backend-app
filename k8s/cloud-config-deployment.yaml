@@ -15,7 +15,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: cloud-config
-          image: dantesiio/ecommerce-backend:dev
+          image: dantesiio/cloud-config-ecommerce-boot:0.1.0
           ports:
             - containerPort: 9296
           env:

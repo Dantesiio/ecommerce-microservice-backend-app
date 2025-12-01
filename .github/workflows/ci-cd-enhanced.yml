@@ -248,7 +248,7 @@ jobs:
     continue-on-error: true
     environment:
       name: dev
-      url: https://dev.ecommerce.example.com
+      url: http://4.157.125.199/user-service/api/v1/users
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

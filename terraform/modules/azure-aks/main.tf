@@ -50,17 +50,6 @@ resource "azurerm_kubernetes_cluster" "aks" {
   tags = var.common_tags
 }
 
-# Container Registry (opcional pero recomendado)
-resource "azurerm_container_registry" "acr" {
-  count               = var.create_acr ? 1 : 0
-  name                = "${replace(var.project_name, "-", "")}${var.environment}acr"
-  resource_group_name = azurerm_resource_group.aks.name
-  location            = azurerm_resource_group.aks.location
-  sku                 = "Standard"
-  admin_enabled       = true
-
-  tags = var.common_tags
-}
 
 # Attach ACR to AKS
 resource "azurerm_role_assignment" "aks_acr" {
